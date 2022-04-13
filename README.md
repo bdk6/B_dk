@@ -9,3 +9,10 @@ In the early 60s at Cambridge a language was defined that was intended to be a d
 
 What does B look like?
 
+B, as might be expected, looks a lot like C.  But it is quite different in many ways from modern C.  For instance, the following code is perfectly legal in B:
+
+square(x) return(x*x);
+
+savesquare(y) { *1024 = square(4); }
+
+It defines two functions, square and savesquare.  Notice there are no types listed.  square has a single statement, not enclosed in braces.  savesquare calls square with the argument 4 and writes the returned value (16) to the memory word at address 1024.
