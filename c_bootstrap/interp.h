@@ -25,6 +25,12 @@ typedef enum RPN_OP
   RPN_DIV,              // Divide top two stack entries
   RPN_MOD,              // Divide, return remainder
   RPN_AND,              // AND top two stack entries
+  RPN_OR,               // OR top two stack entries
+  RPN_XOR,              // XOR top two stack entries
+
+  RPN_NOT,              // One's complement top stack entry
+  RPN_NEG,              // Two's complement top stack entry
+  
 
 
   RPN_BR,               // Branch to following address

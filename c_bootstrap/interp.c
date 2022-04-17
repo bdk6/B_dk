@@ -57,12 +57,57 @@ word execute(void)
     SP++;
     break;
   case RPN_AND:
+    memory[SP + 2] = memory[SP + 2] & memory[SP + 1];
+    SP++;
+    break;
+  case RPN_OR:
+    memory[SP + 2] = memory[SP + 2] | memory[SP + 1];
+    SP++;
+    break;
+  case RPN_XOR:
+    memory[SP + 2] = memory[SP + 2] ^ memory[SP + 1];
+    SP++;
+    break;
+
+  case RPN_NOT:
+    memory[SP + 1] = ~memory[SP + 1];
+    break;
+  case RPN_NEG:
+    memory[SP + 1] = -memory[SP + 1];
+    break;
 
   case RPN_BR:
+    PC = memory[PC];
+    break;
   case RPN_BRZ:
+    SP++;
+    if(memory[SP] == 0)
+    {
+      PC = memory[PC];
+    }
+    else
+    {
+      PC++;
+    }
+    break;
   case RPN_BRNZ:
+    SP++;
+    if(memory[SP] != 0)
+    {
+      PC = memory[PC];
+    }
+    else
+    {
+      PC++;
+    }
+    break;
   case RPN_FETCH:
+    memory[SP + 1] = memory[memory[SP + 1]];
+    break;
   case RPN_STORE:
+    memory[memory[SP + 1]] = memory[SP + 2];
+    SP += 2;
+    break;
   case RPN_PSHI:
     memory[SP--] = memory[PC++];
     break;
@@ -157,6 +202,15 @@ int main(int argc, char** argv)
     printf("clear\n");
     clear();
     printf("Set halt\n");
+    memory[998] = RPN_SETSP;
+    memory[999] = 10000;
+    memory[1000] = RPN_PSHI;
+    memory[1001] = 'X';
+    memory[1002] = RPN_OUTCH;
+    memory[1003] = RPN_PSHI;
+    memory[1004] = 'Y';
+    memory[1005] = RPN_OUTCH;
+    memory[1006] = RPN_HALT;
     memory[65535] = RPN_HALT;
     printf("run\n");
     run(0);

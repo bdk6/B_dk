@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
 
-typedef int16_t word;
-
 
 #define ENTRIES 511
 
