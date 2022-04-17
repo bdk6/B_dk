@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 
-typedef int16_t word;
+typedef uint16_t word;
 
 
 

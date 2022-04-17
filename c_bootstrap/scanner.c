@@ -5,7 +5,7 @@
 #include "scanner.h"
 #include "symtable.h"
 
-typedef int16_t word;
+// typedef int16_t word;
 
 static word linenumber = 0; /* Current line number of input file */
 //static word ident[32];  /* Holding area for token characters (e.g. ident)*/
