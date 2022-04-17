@@ -124,6 +124,58 @@ word iskeyword(char* ident) //word ident)
 }
 
 /* ***********************************************************************
+ * @fn convertEscape
+ * @brief converts an escape sequence to a char in strings and constants.
+ * @param[in] ch Escaped character to convert
+ * @return The converted character
+ * ******************************************************************** */
+word convertEscape(word ch)
+{
+  switch(ch)
+  {
+  case '0':         /*  NULL */
+    ch = 0;
+    break;
+  case 'e':         /* end of file/string */
+    ch = 0;         /* Or EOT/0x03 in original B */
+    break;
+  case '(':         /* sub for { */
+    ch = '{';
+    break;
+  case ')':         /* sub for } */
+    ch = '}';
+    break;
+  case 't':         /* tab */
+    ch = 9;
+    break;
+  case '*':         /* * */
+    // leave it
+    break;
+  case '\'':        /* '  single quote */
+    /* hmmm */
+    break;
+  case '"':         /*  " double quote */
+    /* leave it */
+    break;
+  case 'n':         /* newline (linefeed 10) */
+    ch = 10;
+    break;
+  case 'r':         /* carriage return  13 */
+    ch = 13;
+    break;
+  case 'a':         /* alert/bell 7 */
+    ch = 7;
+    break;
+  default:          /* hmmm, just leave it I guess */
+    break;
+  } /* switch */
+
+
+  return ch;
+}
+
+
+/* ***********************************************************************
  * @fn scan
  * @brief Gets next token from input.
  * @return The type of next token in input stream or TOK_EOF.
@@ -153,7 +205,8 @@ word scan(void)
   tok = ch;
 
   /* Now check and modify our assumption if needed */
-  /* Identifiers */
+  
+  /* ******************** Identifiers ******************** */
   if(ch == '_' || ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z')
   {
     tok = TOK_IDENT;
@@ -176,7 +229,7 @@ word scan(void)
     putchar('\n');
   }
 
-  /* Numbers */
+  /* ******************** Numbers ******************** */
   else if(ch >= '0' && ch <= '9')
   {
     word base;
@@ -217,10 +270,10 @@ word scan(void)
    *  added by me
    *    *r   return
    */
-  
+  /* ******************** Character Constants ******************** */
   else if(ch=='\'')
   {
-    word ccon;
+    word ccon;   /* holds the value */   /* TODO num? */
     ccon = 0;
     tok = TOK_INT;
     ch = getc(infile);
@@ -229,13 +282,34 @@ word scan(void)
       if(ch == '*')  /* escape */
       {
         ch = getc(infile);
-        /* TODO FINISH */
+        ch = convertEscape(ch);
+      } /* if (escapes) */
+      ccon <<= 8;
+      ccon += ch;
+    } /* while */
+  }
+
+  /* ******************** Strings ********************* */
+  else if(ch == '"')
+  {
+    tok = TOK_STRING;
+    ch = getc(infile);
+    num = 9999;      /* TODO set to data counter address */
+    while((ch = getc(infile)) != '"')
+    {
+      if(ch == '*')   /* escape */
+      {
+        ch = getc(infile);
+        ch = convertEscape(ch);
       }
     }
-        
-    
-    /* TODO  get character constant */
   }
+  /* TODO finish this */
+    
+      
+    
+
+  /* ******************** + tokens ******************** */
   else if(ch == '+')
   {
     ch1 = getc(infile);
@@ -248,6 +322,7 @@ word scan(void)
       ungetc(ch1, infile);
     }
   }
+  /* ******************** - tokens ******************** */
   else if(ch == '-')
   {
     ch1 = getc(infile);
@@ -260,6 +335,7 @@ word scan(void)
       ungetc(ch1, infile);
     }
   }
+  /* ******************** ! tokens ******************* */
   else if(ch == '!')
   {
     ch1 = getc(infile);
@@ -272,6 +348,7 @@ word scan(void)
       ungetc(ch1, infile);
     }
   }
+  /* ******************** < tokens ******************** */
   else if(ch == '<')
   {
     ch1 = getc(infile);
@@ -288,6 +365,7 @@ word scan(void)
       ungetc(ch1, infile);
     }
   }
+  /* ******************** > tokens ******************** */
   else if(ch == '>')
   {
     /* TODO ... '>=', '>>' */
@@ -305,6 +383,7 @@ word scan(void)
       ungetc(ch1, infile);
     }
   }
+  /* ******************** = tokens ******************** */
   else if(ch == '=')
   {
     /* TODO ... '==', '=??' (?? = binary) */

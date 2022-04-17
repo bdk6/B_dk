@@ -1,6 +1,9 @@
+string "This is a string";
+
 main()
 {
   auto ident;
+  auto mystring "This is a string";
   if(ident < 99)
   {
     ident =+ 1;

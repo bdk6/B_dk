@@ -266,12 +266,12 @@ void b_lchar(word str, word i, word ch)
   wrd = str[index];
   if(i & 1)  /* Odd chars go on right */
   {
-    wrd &= 0xff;
+    wrd &= 0xff00;
     wrd |= (ch & 0xff);
   }
   else
   {
-    wrd &= 0xff00;
+    wrd &= 0xff;
     wrd |= (ch & 0xff) << 8;
   }
 }
