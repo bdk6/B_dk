@@ -1,0 +1,207 @@
+Assembly Language Programmers' Guide to Elf/OS
+
+Copyright(c) 2022 By Will Cooke
+
+
+Changelog:
+  20220417  -- Initial Creation
+
+
+
+Introduction
+  This guide is a reference for people wishing to write 1802 assembly language
+  prorams to run under Elf/OS.  It is not intended to teach 1802 assembly
+  language.  I assume you already know at least the basics of 1802
+  programming.  There are plenty of good references if you need to learn it.
+  
+  Very little of this guide is original work by me.  It is mostly a
+  compilation of details gathered from the works of others.  It was created
+  for my own use to put all the details in one place.
+
+  At time of writing, Elf/OS 4.1 is the current version.  This guide is
+  geared toward that.
+
+About Elf/OS
+  Elf/OS is a single-user/single-tasking operating system designed to run on
+  180x computers, primarily of the Elf bloodline.  There are various machines
+  and emulators which run it, and its design makes it fairly easy to port to
+  others.
+
+  Elf/OS is similar in size to CP/M 80 that runs on 8080 and derivative
+  processors, but is much more elegant.  It very much has the flavor of UNIX
+  and similar capabilities.  It is a very elegant and impressive work.
+
+
+Elf/OS Conventions, tools,  and Helpers
+  As with any operating system, there are certain conventions you will need
+  to know and follow.  In addition, there are specific tools and "helpers"
+  that will be useful.  This section will list and describe many of these.
+
+  Conventions:
+  Registers:   R0
+               R1
+               R2
+               R3
+               R4
+               R5
+               R6
+               R7
+               R8
+               R9
+               RA
+               RB
+               RC
+               RD
+               RE
+               RF
+               D
+               DF
+
+  Strings:     Strings (e.g. file names, paths, output) are 0 terminated.
+
+  File Handling:  Files are opened by path and filename strings.  Once a file
+  is open, it is refered to by a "file descriptor" that is returned from the
+  "open" system call.  All OS functions refer to the file by this file handle.
+  The file handle is an integer.
+
+  Tools:
+
+  Helpers:
+  Mike has created three include files to use with (TODO insert asm name)
+  to make creation of Elf/OS programs easier.  These are:
+  bios.inc
+  kernel.inc
+  <TODO> .inc
+
+
+
+
+System Calls
+
+  Elf/OS is normally located in memory starting at 0x0300 and expanding to 0x1fff.
+  System calls are made from a vector jump table near the start of that memory. 
+
+
+  OPEN   -- Open a file
+  
+  First Version: 0.1
+  Call Address:  0306h
+  Parameters:    RF     Pointer to pathname
+                 RD     Pointer to file descriptor. DTA must be pre-filled
+                 R7     Flags: 1: Create file if it does not exist.
+                               2: Truncate file.
+                               4: Open for append.  Pointer to end of file.
+  Returns:       DF     0: Success
+                        1: Error
+                 D      Error Code
+                 RD     File Descriptor
+                 
+
+  
+  CLOSE   -- Close a file
+
+  First Version: 0.1
+  Call Address:  0312h
+  Parameters:    RD     File Descriptor
+  Returns:       DF     0: Success
+                        1: Error
+                 D      Error Code
+  
+  WRITE   -- Write to a file.
+  First Version: 0.1
+  Call Address:  030Ch
+  Parameters:    RD     File Descriptor
+                 RF     Pointer to bytes to write.
+                 RC     Count of bytes to write.
+  Returns:       RC     Count of bytes actually written
+                 DF     0: Success
+                        1: Error
+                 D      Error Code
+
+  READ    -- Read from a file.
+  First Version: 0.1
+  Call Address:  0309h
+  Parameters:
+  
+
+
+0309h	0.1	READ - Read from file
+Args:	RD = File descriptor
+RF = Pointer to buffer
+RC = Count of bytes to read
+Returns:	RC = Count of bytes read
+DF=0 - Success
+DF=1 - Error
+    D - Error Code
+
+
+030Fh	0.1	SEEK - Change file position
+Args:	R8 = High word of seek address
+R7 = Low word of seek address
+RD = File descriptor
+RC = Seek from:
+    0	Beginning of file
+    1	Current position
+    2	End of file
+Returns:	R8 = High word of current file pointer
+R7 = Low word of current file pointer
+DF=0 - Success
+DF=1 - Error
+    D - Error Code
+
+
+031Bh	0.1	RENAME - Rename a file
+Args:	RF = Source filename
+RC = Destination filename
+Returns:	DF=0 - Success
+DF=1 - Error
+    D - Error Code
+0318h	0.1	DELETE - Delete a file
+Args:	RF = Filename
+Returns:	DF=0 - Success
+DF=1 - Error
+    D - Error Code
+031Eh	0.1	EXEC - Execute a program
+Args:	RF = Command line
+Returns:	DF=0 - Success
+DF=1 - Error
+    D - Error Code
+0315h	0.1	OPENDIR - Open directory for reading
+Args:	RF = Pathname
+Returns:	RD - File descriptor
+DF=0 - Success
+DF=1 - Error
+    D - Error Code
+0321h	0.2	MKDIR - Make directory
+Args:	RF = Pathname
+Returns:	DF=0 - Success
+DF=1 - Error
+    D - Error Code
+0324h	0.2	CHDIR - Change/Show current directory
+Args:	RF = Pathname or buffer to place current path
+Returns:	DF=0 - Success
+DF=1 - Error
+    D - Error Code
+0327h	0.2	RMDIR - Remove directory (must be empty)
+Args:	RF = Pathname
+Returns:	DF=0 - Success
+DF=1 - Error
+    D - Error Code
+
+
+
+
+Error Codes:
+  1        errexists
+  2        errnoffnd
+  3        errinvdir
+  4        errisdir
+  5        errdirnotempty
+  6        errnotexec
+
+Sources:
+  elf-emulation.com
+  Mike Riley's github
+  Gaston's github
+  David Madole's github
+  

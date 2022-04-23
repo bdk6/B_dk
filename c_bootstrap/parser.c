@@ -61,11 +61,11 @@ word program()
 word definition()
 {
   word rtn = 0;
-  printf("Starting Definition \n");
+//  printf("Starting Definition \n");
   if(tok == TOK_IDENT) /* name */
   {
     /* TODO: ... */
-    printf("Found Name ");
+//    printf("Found Name ");
     tok = scan();
     
     /* ********** Vectors ********** */
@@ -73,7 +73,7 @@ word definition()
     {
       /* vector */
       /* constant ] ival {, ival } */
-      printf("Vector ");
+//      printf("Vector ");
       tok = scan();
       if(tok == TOK_INT)  /* constant */
       {
@@ -111,7 +111,7 @@ word definition()
     {
       /* [ name { , name } ] ) statement */
       
-      printf("Function ");
+//      printf("Function ");
       if(inFunction)       /* A function inside another is not allowed */
       {
         rtn = -1;
@@ -135,7 +135,7 @@ word definition()
       if(tok == ')')
       {
         tok = scan();
-        printf("Look for statement...\n");
+//        printf("Look for statement...\n");
         statement();
       }
       else
@@ -144,13 +144,13 @@ word definition()
         rtn = -1;
       }
       inFunction = 0;     /* Tell the world we are done */
-      printf("Exiting Function \n");
+//      printf("Exiting Function \n");
     }
 
     /* ********** Initialized Variable ********** */
     else if(tok == TOK_INT || tok == TOK_IDENT || tok == TOK_STRING)
     {
-      printf( "Initalized simple variable \n");
+//      printf( "Initalized simple variable \n");
       tok = scan();
       if(tok != ';')
       {
@@ -167,7 +167,7 @@ word definition()
     else if(tok == ';')
     {
       /* simple variable */
-      printf("Simple Variable \n");
+//      printf("Simple Variable \n");
       tok = scan();
     }
   }
@@ -184,7 +184,7 @@ word definition()
 
     
 
-  printf("Exiting Definition \n");
+//  printf("Exiting Definition \n");
   return rtn;
 }
 
@@ -211,16 +211,16 @@ word statement()
   word rtn = 0;
 
   /* TODO: fill this in */
-  printf("In statement with token: %d\n", tok);
+//  printf("In statement with token: %d\n", tok);
   while(tok == TOK_AUTO || tok == TOK_EXTRN
-        || tok == TOK_CASE || tok == TOK_IDENT)
+        || tok == TOK_CASE ) // TODO labels || tok == TOK_IDENT)
   {
-    printf("Statement ");
+    printf("Statement tok = %d \n", tok);
     switch(tok)
     {
     case TOK_AUTO:                         /* keyword auto */
       tok = scan();
-      printf("auto definition\n");
+//      printf("auto definition\n");
       if(tok != TOK_IDENT)
       {
         /* error */
@@ -251,7 +251,7 @@ word statement()
           }
           else
           {
-            printf("Found semicolon at end of auto init \n");
+//            printf("Found semicolon at end of auto init \n");
             //while(1);
             tok = scan();
           }
@@ -287,7 +287,9 @@ word statement()
       tok = scan();
       /* todo */
       break;
-    case TOK_IDENT:
+      
+    case TOK_IDENT:         /* TODO: add later see while above  labels 'name:' */
+      printf("BOGUS!!!!!!!\n");
       tok = scan();
       /* todo */
       break;
@@ -296,7 +298,7 @@ word statement()
   switch(tok)
   {
   case TOK_IF:  /* if( rvalue ) statement [ else statement ] */
-    printf("IF STATEMENT \n");
+//    printf("IF STATEMENT \n");
     tok = scan();
     if(tok != '(')
     {
@@ -305,9 +307,9 @@ word statement()
       break;
     }
     tok = scan();
-    printf("IF STATEMENT -- entering expression\n");
+//    printf("IF STATEMENT -- entering expression\n");
     expression();
-    printf("IF STATEMENT -- exited expression\n");
+//    printf("IF STATEMENT -- exited expression\n");
     if(tok != ')')
     {
       /* error */
@@ -315,14 +317,18 @@ word statement()
       rtn = -1;
       break;
     }
+    printf("\tJZ\tELSEPART\n");
     tok = scan();
-    printf("IF STATEMENT -- entering statement\n");
+//    printf("IF STATEMENT -- entering statement\n");
     statement();
+    printf("\tJMP\tENDIF\n");
+    printf("ELSEPART\n");
     if(tok == TOK_ELSE)
     {
       tok = scan();
       statement();
     }
+    printf("ENDIF\n");
     /* todo */
     break;
     
@@ -369,12 +375,12 @@ word statement()
     break;
     
   case TOK_GOTO:   /* goto rvalue ; */
-    printf("goto st\n");
+//    printf("goto st\n");
     tok = scan();
     /* todo */
     break;
   case TOK_RETURN: /* return [ (rvalue) ] ; */
-    printf("return st\n");
+//    printf("return st\n");
     tok = scan();
     if(tok != ';')
     {
@@ -390,15 +396,17 @@ word statement()
     tok = scan();
     break;
   case '{':        /* '{' {statement} '}' */
-    printf("Compound st\n");
+    //printf("Compound st\n");
     tok = scan();
     while(tok != '}')
     {
-      printf("In compound statement  line: %3d\n", getLineNumber());
+      //printf("In compound statement this tok = %d\n", tok);
       statement();
+      //printf("tok after statement = %d\n", tok);
     }
-    printf("Compound statement ended \n");
+    //printf("Compound statement ended this tok = %d\n",tok);
     tok = scan();
+    //printf("...and next tok = %d\n", tok);
     break;
 
     
@@ -428,6 +436,7 @@ word statement()
     if(tok == ';')                  /* Good, found the end */
     {
       tok = scan();
+      //printf("End of EXP st next tok=%d\n", tok);
       break;
     }
     else                            /* Nope! Error */
@@ -454,7 +463,7 @@ word statement()
 word expression()
 {
   word rtn = 0;
-  printf("EXPRESSION \n");
+//  printf("EXPRESSION \n");
   assignexp();
 
   /* TODO: */
@@ -480,14 +489,14 @@ word expression()
           | rvalue ( {rvalue {, rvalue} } )
 */
 
-word rvalue()
-{
-  word rtn = 0;
+//word rvalue()
+//{
+//  word rtn = 0;
 
-  /* TODO: */
+//  /* TODO: */
 
-  return rtn;
-}
+//  return rtn;
+//}
 
 /* ***********************************************************************
  * @fn isassignop
@@ -541,6 +550,7 @@ word assignexp()
     //printf("Found ASSIGNOP tok=%d\n",tok);
     tok = scan();
     assignexp();
+    printf("\tDOASSIGN_%03d\n",thisTok);
   }
 
   return rtn;
@@ -787,7 +797,8 @@ word term()
   rtn = factor();
   while(tok == '*' | tok == '/' | tok == '%')
   {
-    thisTok == tok;
+    thisTok = tok;
+    //printf("term: thisTok = %d\n", thisTok);
     valueType = RVALUE;
     tok = scan();
     rtn = factor();
@@ -843,7 +854,7 @@ word factor() /* rvalue */
   rtn = 0;
   //printf("FACTOR\n");
   word val;
-  // TODOword tokChars;
+  // TODO word tokChars;
   char* tokChars;
   
   /* TODO */
@@ -895,6 +906,7 @@ word factor() /* rvalue */
     /* TODO convert this to B */
     char localText[128];
     strcpy(localText,tokChars);
+    //printf("Got identifier: %s\n",localText);
     tok = scan();
     if(tok == '[')         /* vector */
     {
@@ -923,6 +935,37 @@ word factor() /* rvalue */
       printf("\tPUSH\t-%s-\t\t;Get a variable address \n",localText);
     }
     
+    break;
+
+  case '-':                /* negation  */
+    tok = scan();
+    factor();
+    printf("\tNEG \n");
+    break;
+
+  case '!':                /* logical NOT */
+    tok = scan();
+    factor();
+    printf("\tNOT\n");
+    break;
+
+  case '~':                /* bitwise NOT */
+    tok = scan();
+    factor();
+    printf("\tCPL\n");
+    break;
+
+  case '&':                /* address of */
+    tok = scan();
+    factor();
+    printf("\tADDRESS OF \n");
+    /* TODO hmmmmm */
+    break;
+
+  case '*':                /* indirection */
+    tok = scan();
+    factor();
+    printf("\tFETCH\n");
     break;
 
   default:

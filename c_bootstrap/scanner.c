@@ -203,7 +203,7 @@ word scan(void)
     if(ch == '\n')
     {
       linenumber++;
-      printf("\nLine: %d\n", linenumber);
+      printf("\n; Line: %d\n", linenumber);
     }
     
   }while(ch == ' ' || ch == '\t' || ch == '\n');
@@ -231,7 +231,7 @@ word scan(void)
     /* this character is NOT part of identifier */
     ungetc(ch, infile);
     tok = iskeyword(ident);
-    printf("IDENT characters are: *%s*\n", ident);
+//    printf("IDENT characters are: *%s*\n", ident);
     //printf("%s %d %s \n", tokNames[tok-256],stringcount,ident);
     //for(int i = 0; i < stringcount; i++) putchar(ident[i]);
     //putchar('\n');
@@ -494,7 +494,7 @@ word scan(void)
     tok = TOK_EOF;
   }
   
-  printf("TOK: %3d\n", tok);
+//  printf("TOK: %3d\n", tok);
   return tok;
 }
 
@@ -505,12 +505,12 @@ word scan(void)
 int scanmain(int argc, char** argv)
 {
   int rtn = 0;
-  printf("argc = %d \n", argc);
+//  printf("argc = %d \n", argc);
   if(argc >1)
   {
     for(int arg = 0; arg < argc; arg++)
     {
-      printf("arg %2d: %s \n", arg, argv[arg]);
+//      printf("arg %2d: %s \n", arg, argv[arg]);
     }
     for(int arg = 1; arg < argc; arg++)
     {
@@ -519,7 +519,7 @@ int scanmain(int argc, char** argv)
       do
       {
         tok = scan();
-        printf("tok = %3d \n", tok);
+//        printf("tok = %3d \n", tok);
         if(tok == TOK_IDENT)
         {
           int i = 0;
@@ -560,7 +560,7 @@ word getNumber(void)
  * ********************************************************************** */
 char* getText(void)
 {
-  printf("getText returning:%s:\n", ident);
+//  printf("getText returning:%s:\n", ident);
   return ident;
 }
 
