@@ -48,3 +48,6 @@
 
 word scanfile(char* fn);
 word scan(void);
+word getNumber(void);
+char* getText(void);
+word getLineNumber(void);

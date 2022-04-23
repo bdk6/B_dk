@@ -5,7 +5,6 @@
 #include "scanner.h"
 #include "symtable.h"
 
-// typedef int16_t word;
 
 static word linenumber = 0; /* Current line number of input file */
 //static word ident[32];  /* Holding area for token characters (e.g. ident)*/
@@ -57,6 +56,7 @@ word scanfile(char* filename)
     rtn = -1;
   }
   savedChars = 0;    /* how many characters have we "ungotten?" */
+  linenumber = 1;
   return rtn;
 }
 
@@ -78,8 +78,14 @@ word next()
   {
     rtn = getc(infile);
   }
+ 
   return rtn;
 }
+
+/* ***********************************************************************
+ * @fn unnext
+ * @brief Puts a character (up to 2) back in input stream.
+ ********************************************************************** */
 word unnext(word ch)
 {
   if(savedChars < 2)
@@ -197,6 +203,7 @@ word scan(void)
     if(ch == '\n')
     {
       linenumber++;
+      printf("\nLine: %d\n", linenumber);
     }
     
   }while(ch == ' ' || ch == '\t' || ch == '\n');
@@ -224,9 +231,10 @@ word scan(void)
     /* this character is NOT part of identifier */
     ungetc(ch, infile);
     tok = iskeyword(ident);
-    printf("%s %d %s \n", tokNames[tok-256],stringcount,ident);
-    for(int i = 0; i < stringcount; i++) putchar(ident[i]);
-    putchar('\n');
+    printf("IDENT characters are: *%s*\n", ident);
+    //printf("%s %d %s \n", tokNames[tok-256],stringcount,ident);
+    //for(int i = 0; i < stringcount; i++) putchar(ident[i]);
+    //putchar('\n');
   }
 
   /* ******************** Numbers ******************** */
@@ -286,6 +294,7 @@ word scan(void)
       } /* if (escapes) */
       ccon <<= 8;
       ccon += ch;
+      num = ccon;
     } /* while */
   }
 
@@ -480,6 +489,11 @@ word scan(void)
     }
   }
 
+  if(tok == 65535)                /* kludge! */
+  {
+    tok = TOK_EOF;
+  }
+  
   printf("TOK: %3d\n", tok);
   return tok;
 }
@@ -526,6 +540,36 @@ int scanmain(int argc, char** argv)
   return rtn;
 }
 
+
+  
+/* *************************************************************************
+ * @fn getNumber
+ * @brief Get the most recent scanned number value.
+ * @return Most recent scanned number.
+ * ********************************************************************** */
+word getNumber(void)
+{
+  return num;
+}
   
   
-  
+/* *************************************************************************
+ * @fn getText
+ * @brief Get a pointer to the token text.
+ * @return Pointer to current token text string.
+ * ********************************************************************** */
+char* getText(void)
+{
+  printf("getText returning:%s:\n", ident);
+  return ident;
+}
+
+/* *************************************************************************
+ * @fn getLineNumber
+ * @brief Get the current source file line number.
+ * @return Current line number.
+ * ********************************************************************** */
+word getLineNumber(void)
+{
+  return linenumber;
+}

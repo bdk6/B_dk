@@ -1,3 +1,4 @@
+svar ;
 string "This is a string";
 
 main()
@@ -6,8 +7,8 @@ main()
   auto mystring "This is a string";
   if(ident < 99)
   {
+    ident = ident + 4;
     ident =+ 1;
-    ident++;
     ident =* 3;
     ident =/ 2;
     ident =- 1;
@@ -17,5 +18,6 @@ main()
     ident === 3;
     ident =!= 2;
   }
+  ident = ident + 4 * 3 / 5;
   return ident;
 }
