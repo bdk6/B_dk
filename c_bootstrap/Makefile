@@ -1,20 +1,37 @@
 
 
-bc:	system.o parser.o scanner.o blib.o symtable.o 
-	gcc -o bc system.o parser.o scanner.o blib.o symtable.o
+all:	bc
 
-system.o:	system.c system.h definitions.h
-	gcc system.c
+bpp:
+
+bl:
+	
+
+bc:	 parser.o scanner.o  symtable.o #blib.o system.o
+	gcc -o bc parser.o scanner.o  symtable.o #blib.o system.o
+
+ba:
+
+
+
+#system.o:	system.c system.h definitions.h
+#	gcc -c system.c
 
 parser.o:	parser.c parser.h definitions.h
-	gcc parser.c
+	gcc -c parser.c
 
 scanner.o:	scanner.c scanner.h definitions.h
-	gcc scanner.c
+	gcc -c scanner.c
 
-blib.o:	blib.c blib.h definitions.h
-	gcc blib.c
+#blib.o:	blib.c blib.h definitions.h
+#	gcc -c blib.c
+
 symtable.o:	symtable.c symtable.h definitions.h
-	gcc symtable.c
+	gcc -c symtable.c
+
+clean:
+	rm *.o bc
+
+
 
 

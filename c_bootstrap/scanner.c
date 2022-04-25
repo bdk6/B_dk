@@ -10,6 +10,8 @@ static word linenumber = 0; /* Current line number of input file */
 //static word ident[32];  /* Holding area for token characters (e.g. ident)*/
 static char ident[32];   // having trouble with words
 static word num;        /* Holds value for scanned constants */
+static char line[128];  /* holds next incoming line */
+static word lineIndex;  /* holds index of next char in line */
 
 FILE* infile = NULL;
 
@@ -18,8 +20,8 @@ word savedChars;   /* count of characters in save buffer */
 
 
 /* ******    Temporary stuff until combine all files ***************/
-word stringtable[16000];   /* Place to hold ident strings */
-word stringpointer = 0;    /* Where next char goes in stringtable */
+//word stringtable[16000];   /* Place to hold ident strings */
+//word stringpointer = 0;    /* Where next char goes in stringtable */
 /* The two above are/will be defined in symtable.c / symtable.h */
 
 /* for debugging */
@@ -56,7 +58,41 @@ word scanfile(char* filename)
     rtn = -1;
   }
   savedChars = 0;    /* how many characters have we "ungotten?" */
-  linenumber = 1;
+  linenumber = 0;
+  lineIndex = 0;
+  line[lineIndex] = 0;
+  return rtn;
+}
+
+/* ***********************************************************************
+ * @fn getLine
+ * @brief Reads a line from input file to line buffer.
+ * @return Number of chars read or -1 on error.
+ * ******************************************************************** */
+word getLine()
+{
+  word rtn = 0;
+  lineIndex = 0;
+  //TODO fix this
+  // gets(line);
+  word ch;
+  do
+  {
+    ch = getc(infile);
+    if(lineIndex < 127)
+    {
+      line[lineIndex++] = ch;
+    }
+    if(ch == (word)EOF)
+    {
+      printf("End of File ch=%d eof=%d\n", ch, EOF);
+      //while(1);
+    }
+  }while(ch != '\n' && ch != (word)EOF);
+  line[lineIndex] = 0;
+  rtn = lineIndex;
+  lineIndex = 0;
+    
   return rtn;
 }
 
@@ -76,7 +112,15 @@ word next()
   }
   else
   {
-    rtn = getc(infile);
+    //rtn = getc(infile);
+    while(line[lineIndex] == 0)
+    {
+      getLine();
+      linenumber++;
+      printf(";%04d:%s \n", linenumber, line);
+    }
+    rtn = line[lineIndex++];
+      
   }
  
   return rtn;
@@ -198,13 +242,14 @@ word scan(void)
   /* skip whitespace */
   do
   {
-    ch = getc(infile);
+    //ch = getc(infile);
+    ch = next();
     /*  ... */
-    if(ch == '\n')
-    {
-      linenumber++;
-      printf("\n; Line: %d\n", linenumber);
-    }
+//    if(ch == '\n')
+//    {
+//      linenumber++;
+//      printf("\n; Line: %d\n", linenumber);
+//    }
     
   }while(ch == ' ' || ch == '\t' || ch == '\n');
 
@@ -225,11 +270,11 @@ word scan(void)
       {
         ident[stringcount++] = ch;
       }
-      ch = getc(infile);
+      ch = next(); //getc(infile);
     }
     ident[stringcount] = 0;   /* terminate the string */
     /* this character is NOT part of identifier */
-    ungetc(ch, infile);
+    unnext(ch); // ungetc(ch, infile);
     tok = iskeyword(ident);
 //    printf("IDENT characters are: *%s*\n", ident);
     //printf("%s %d %s \n", tokNames[tok-256],stringcount,ident);
@@ -256,11 +301,11 @@ word scan(void)
         ident[stringcount++] = ch;
       }
       num = num * base + (ch - '0');
-      ch = getc(infile);
+      ch = next(); // getc(infile);
     }
     ident[stringcount] = 0;
     /* this character is NOT part of number */
-    ungetc(ch, infile);
+    unnext(ch); // ungetc(ch, infile);
   }
   
   /* Character constant */
@@ -284,12 +329,12 @@ word scan(void)
     word ccon;   /* holds the value */   /* TODO num? */
     ccon = 0;
     tok = TOK_INT;
-    ch = getc(infile);
-    while((ch = getc(infile)) != '\'')
+    ch = next(); // getc(infile);
+    while((ch = next() /* getc(infile) */ ) != '\'')
     {
       if(ch == '*')  /* escape */
       {
-        ch = getc(infile);
+        ch = next(); // getc(infile);
         ch = convertEscape(ch);
       } /* if (escapes) */
       ccon <<= 8;
@@ -302,13 +347,13 @@ word scan(void)
   else if(ch == '"')
   {
     tok = TOK_STRING;
-    ch = getc(infile);
+    ch = next(); // getc(infile);
     num = 9999;      /* TODO set to data counter address */
-    while((ch = getc(infile)) != '"')
+    while((ch = next() /* getc(infile) */) != '"')
     {
       if(ch == '*')   /* escape */
       {
-        ch = getc(infile);
+        ch = next(); // getc(infile);
         ch = convertEscape(ch);
       }
     }
@@ -321,46 +366,46 @@ word scan(void)
   /* ******************** + tokens ******************** */
   else if(ch == '+')
   {
-    ch1 = getc(infile);
+    ch1 = next(); // getc(infile);
     if(ch1 == '+')
     {
       tok = TOK_INC;
     }
     else
     {
-      ungetc(ch1, infile);
+      unnext(ch1); // ungetc(ch1, infile);
     }
   }
   /* ******************** - tokens ******************** */
   else if(ch == '-')
   {
-    ch1 = getc(infile);
+    ch1 = next(); // getc(infile);
     if(ch1 == '-')
     {
       tok = TOK_DEC;
     }
     else
     {
-      ungetc(ch1, infile);
+      unnext(ch1); // ungetc(ch1, infile);
     }
   }
   /* ******************** ! tokens ******************* */
   else if(ch == '!')
   {
-    ch1 = getc(infile);
+    ch1 = next(); // getc(infile);
     if(ch1 == '=')
     {
       tok = TOK_NOT_EQ;
     }
     else
     {
-      ungetc(ch1, infile);
+      unnext(ch1); // ungetc(ch1, infile);
     }
   }
   /* ******************** < tokens ******************** */
   else if(ch == '<')
   {
-    ch1 = getc(infile);
+    ch1 = next(); // getc(infile);
     if(ch1 == '=')
     {
       tok = TOK_LESS_EQ;
@@ -371,14 +416,14 @@ word scan(void)
     }
     else
     {
-      ungetc(ch1, infile);
+      unnext(ch1); // ungetc(ch1, infile);
     }
   }
   /* ******************** > tokens ******************** */
   else if(ch == '>')
   {
     /* TODO ... '>=', '>>' */
-    ch1 = getc(infile);
+    ch1 = next(); // getc(infile);
     if(ch1 == '=')
     {
       tok = TOK_GREAT_EQ;
@@ -389,7 +434,7 @@ word scan(void)
     }
     else
     {
-      ungetc(ch1, infile);
+      unnext(ch1); // ungetc(ch1, infile);
     }
   }
   /* ******************** = tokens ******************** */
@@ -398,7 +443,7 @@ word scan(void)
     /* TODO ... '==', '=??' (?? = binary) */
     /* ==, =|, =&, =<, =>, =-, =+, =%, =*, =/ */
     /* ===, =!=, =>=, =<=, =<<, =>>, */
-    ch1 = getc(infile);
+    ch1 = next(); // getc(infile);
 
     /* =| */
     if(ch1 == '|')                      /* =| */
@@ -415,14 +460,14 @@ word scan(void)
     else if(ch1 == '=')
     {
       tok = TOK_EQ_EQ;                  /* == */
-      ch2 = getc(infile);
+      ch2 = next(); // getc(infile);
       if(ch2 == '=')
       {
         tok = TOK_EQ_EQ_EQ;             /* === */
       }
       else
       {
-        ungetc(ch2, infile);
+        unnext(ch2); // ungetc(ch2, infile);
       }
     }
     else if(ch1 == '!')
@@ -432,7 +477,7 @@ word scan(void)
     else if(ch1 == '<')
     {
       tok = TOK_EQ_LESS;                /* =< */
-      ch2 = getc(infile);
+      ch2 = next(); // getc(infile);
       if(ch2 == '=')
       {
         tok = TOK_EQ_LESS_EQ;           /* =<= */
@@ -443,13 +488,13 @@ word scan(void)
       }
       else
       {
-        ungetc(ch2, infile);
+        unnext(ch2); // ungetc(ch2, infile);
       }
     }
     else if(ch1 == '>')
     {
       tok = TOK_EQ_GREAT;               /* => */
-      ch2 == getc(infile);
+      ch2 == next(); // getc(infile);
       if(ch2 == '=')
       {
         tok = TOK_EQ_GREAT_EQ;          /* =>= */
@@ -460,7 +505,7 @@ word scan(void)
       }
       else
       {
-        ungetc(ch2, infile);
+        unnext(ch2); // ungetc(ch2, infile);
       }
     }
     else if(ch1 == '-')
@@ -485,8 +530,9 @@ word scan(void)
     }
     else
     {
-      ungetc(ch1, infile);
+      unnext(ch1); // ungetc(ch1, infile);
     }
+    //printf("Assign op: %d\n", tok);
   }
 
   if(tok == 65535)                /* kludge! */

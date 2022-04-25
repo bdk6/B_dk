@@ -1,4 +1,6 @@
 svar ;
+nuthervar;
+
 string "This is a string";
 
 main()
@@ -17,7 +19,23 @@ main()
     ident =& 9;
     ident === 3;
     ident =!= 2;
+    ident = main();
   }
+  else ident = 0;
   ident = ident + 4 * 3 / 5;
   return ident;
 }
+
+fn2()
+{
+  auto x;
+  extrn main;
+  extrn string;
+
+  while(1)
+  {
+    if(x>5)
+      x = x*2;
+  }
+}
+

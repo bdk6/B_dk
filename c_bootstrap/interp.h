@@ -6,6 +6,16 @@
 #include "definitions.h"
 
 /* ***********************************************************************
+ * Machine description:
+ * PC = Program Counter
+ * PP = Parameter Pointer -> points to passed in parms on stack.
+ * FP = Frame Pointer -> Points to local variables on stack.
+ * SP = Stack Pointer
+ * ... more
+
+ * ******************************************************************** */
+
+/* ***********************************************************************
  * RPN opcodes
  * ADD      Add top two stack entries
  * SUB      Subtract top two stack entries

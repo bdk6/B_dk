@@ -10,10 +10,13 @@
 #include "definitions.h"
 #include "parser.h"
 #include "scanner.h"
+#include "symtable.h"
+
 
 // typedef int16_t word;
 
 word tok;
+char localText[32];
 
 #define UNVALUE   0
 #define RVALUE    1
@@ -22,13 +25,35 @@ word tok;
 word valueType = UNVALUE;       /* What type of value is current? */
 word inFunction = 0;            /* Are we parsing a function? */
 
+word errCount = 0;          /* How many errors have we found */
+
+word dataCounter = 0;       /* Where to compile next data item */
+word bssCounter = 0;        /* Where to compile next bss item */
+word codeCounter = 0;       /* Where to compile next code item */
+
+/* ***********************************************************************
+ * @fn parse
+ * @brief parses and compiles an input file 
+ * @param f Does nothing for now
+ * @return Compile status: 0 for clean compile 
+ * ******************************************************************** */
 word parse( int f )
 {
   word rtn = 0;
 
   // initialize
+  inFunction = 0;
+  errCount = 0;
+  dataCounter = 0;
+  bssCounter = 0;
+  codeCounter = 0;
+  
   word result = program();
+  
   // finalize
+  sym_dumpTable();
+  printf("There were %d errors found. \n", errCount);
+  rtn = errCount;
 
   return rtn;
 }
@@ -61,11 +86,17 @@ word program()
 word definition()
 {
   word rtn = 0;
+  word count = 0;    /* how many params or initializers */
+  word flags;
+  word value;
+  
 //  printf("Starting Definition \n");
   if(tok == TOK_IDENT) /* name */
   {
     /* TODO: ... */
 //    printf("Found Name ");
+    /* If it's an ident we need the name */
+    strcpy(localText, getText());
     tok = scan();
     
     /* ********** Vectors ********** */
@@ -168,6 +199,10 @@ word definition()
     {
       /* simple variable */
 //      printf("Simple Variable \n");
+      value = dataCounter;
+      dataCounter++;
+      flags = FLAG_EXTRN;
+      sym_insert(localText, flags, value);
       tok = scan();
     }
   }
@@ -215,7 +250,7 @@ word statement()
   while(tok == TOK_AUTO || tok == TOK_EXTRN
         || tok == TOK_CASE ) // TODO labels || tok == TOK_IDENT)
   {
-    printf("Statement tok = %d \n", tok);
+    //printf("Statement tok = %d \n", tok);
     switch(tok)
     {
     case TOK_AUTO:                         /* keyword auto */
@@ -307,9 +342,9 @@ word statement()
       break;
     }
     tok = scan();
-//    printf("IF STATEMENT -- entering expression\n");
+    // printf("IF STATEMENT -- entering expression\n");
     expression();
-//    printf("IF STATEMENT -- exited expression\n");
+    //printf("IF STATEMENT -- exited expression\n");
     if(tok != ')')
     {
       /* error */
@@ -333,6 +368,7 @@ word statement()
     break;
     
   case TOK_WHILE:  /* while '(' rvalue ')' statement */
+    printf("WHILESTART:\n");
     tok = scan();
     if(tok != '(')
     {
@@ -348,9 +384,12 @@ word statement()
       rtn = -1;
       break;
     }
+    printf("\tJZ\tWHILEEND\n");
     tok = scan();
     statement();
     /* todo */
+    printf("\tJMP\tWHILESTART\n");
+    printf("WHILEEND:\n");
     break;
     
   case TOK_SWITCH:  /* switch rvalue statement */
@@ -860,15 +899,19 @@ word factor() /* rvalue */
   /* TODO */
   switch(tok)
   {
+
+    /*   Constant: literal integer / character */
   case TOK_INT:           /* dec, oct, char, : rvalue */
     valueType = RVALUE;
     val = getNumber();
     tok = scan();
+
+    /* If followed by '[' then it's a vector reference */
     if(tok == '[')        /* vector */
     {
       valueType = LVALUE;
       tok = scan();
-      /* expression */
+      expression();
       /* TODO */
       if(tok != ']')
       {
@@ -877,6 +920,8 @@ word factor() /* rvalue */
       }
       tok = scan();
     }
+    
+    /* If followed by '(' then it's a function call */
     else if(tok == '(')   /* function call */
     {
       valueType = RVALUE;
@@ -923,16 +968,27 @@ word factor() /* rvalue */
     }
     else if(tok == '(')      /* function call */
     {
+      printf("Compiling fn() \n");
       valueType = RVALUE;
+      //word address = lookup(name);
+      word address = 1234;
       tok = scan();
       /* paramlist */
       /* ... */
       /* TODO */
+      if(tok != ')')
+      {
+        /* ERROR */
+        printf("Error token is %d \n", tok);
+        rtn = -1;
+      }
+      printf("\tCALL\t%5d\n", address);
+      tok = scan();
     }
     else /* just a plain variable */
     {
       // TODO val = lookup(getText);
-      printf("\tPUSH\t-%s-\t\t;Get a variable address \n",localText);
+      printf("\tPUSH\t%s\t\t;Get a variable address \n",localText);
     }
     
     break;
@@ -987,6 +1043,7 @@ int main(int argc, char** argv)
     if(! scanfile(argv[1]))
     {
       printf("Parsing file %s ... \n", argv[1]);
+      sym_initialize();
       parse( 0 );
       printf("Done.\n");
     }
