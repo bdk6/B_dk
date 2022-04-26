@@ -3,10 +3,13 @@ nuthervar;
 
 string "This is a string";
 
-main()
+main(argc, argv)
 {
   auto ident;
   auto mystring "This is a string";
+  extrn extvar;
+  extrn svar;
+  svar = svar * argc + 2;
   if(ident < 99)
   {
     ident = ident + 4;

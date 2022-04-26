@@ -11,6 +11,6 @@
 
 typedef uint16_t word;
 
-
+#define ERR_
 
 #endif /* _DEFINITIONS_H_ */

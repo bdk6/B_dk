@@ -368,11 +368,11 @@ word sym_dumpTable(void)
     }
     index++;
   }
-  for(int i = 1; i < 24; i++)
-  {
-    int c = stringtable[i];
-    printf("%02x ", c);
-  }
+//  for(int i = 1; i < 24; i++)  for debugging only
+//  {
+//    int c = stringtable[i];
+//    printf("%02x ", c);
+//  }
   
   return rtn;
 }

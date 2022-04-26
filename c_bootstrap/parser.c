@@ -25,11 +25,14 @@ char localText[32];
 word valueType = UNVALUE;       /* What type of value is current? */
 word inFunction = 0;            /* Are we parsing a function? */
 
-word errCount = 0;          /* How many errors have we found */
+word errorCount = 0;          /* How many errors have we found */
+word warningCount = 0;        /* How many warning have we found */
 
 word dataCounter = 0;       /* Where to compile next data item */
 word bssCounter = 0;        /* Where to compile next bss item */
 word codeCounter = 0;       /* Where to compile next code item */
+
+word skipTo(word nextToken);
 
 /* ***********************************************************************
  * @fn parse
@@ -43,7 +46,8 @@ word parse( int f )
 
   // initialize
   inFunction = 0;
-  errCount = 0;
+  errorCount = 0;
+  warningCount = 0;
   dataCounter = 0;
   bssCounter = 0;
   codeCounter = 0;
@@ -52,8 +56,8 @@ word parse( int f )
   
   // finalize
   sym_dumpTable();
-  printf("There were %d errors found. \n", errCount);
-  rtn = errCount;
+  printf("There were %d errors found. \n", errorCount);
+  rtn = errorCount;
 
   return rtn;
 }
@@ -89,6 +93,7 @@ word definition()
   word count = 0;    /* how many params or initializers */
   word flags;
   word value;
+  word stackCounter;  /* auto/parameter offset from paramptr/frameptr */
   
 //  printf("Starting Definition \n");
   if(tok == TOK_IDENT) /* name */
@@ -105,6 +110,7 @@ word definition()
       /* vector */
       /* constant ] ival {, ival } */
 //      printf("Vector ");
+      sym_insert(localText, FLAG_EXTRN | FLAG_VEC, dataCounter++);
       tok = scan();
       if(tok == TOK_INT)  /* constant */
       {
@@ -113,6 +119,7 @@ word definition()
         if(tok != ']')    /* error: expected ] */
         {
           /* error routine */
+          errorCount++;
         }
         tok = scan();     /* look for initializers */
         while(tok == TOK_INT || tok == TOK_IDENT || tok == TOK_STRING)
@@ -130,6 +137,7 @@ word definition()
           rtn = -1;
           /* ERROR */
           /* TODO */
+          errorCount++;
         }
         tok = scan();
       /* ... */
@@ -143,16 +151,25 @@ word definition()
       /* [ name { , name } ] ) statement */
       
 //      printf("Function ");
+      sym_insert(localText, FLAG_FUNCTION, codeCounter);
       if(inFunction)       /* A function inside another is not allowed */
       {
         rtn = -1;
         /* ERROR */
+        errorCount++;
       }
       inFunction = 1;
       tok = scan();
+      stackCounter = 0;
+      flags = FLAG_PARAMETER;
+      
       while(tok == TOK_IDENT)
       {
         /* process name */
+        strcpy(localText, getText());
+        sym_insert(localText, flags, stackCounter);
+        stackCounter++;
+        
         tok = scan();
         if(tok != ',')
         {
@@ -172,6 +189,7 @@ word definition()
       else
       {
         /* error */
+        errorCount++;
         rtn = -1;
       }
       inFunction = 0;     /* Tell the world we are done */
@@ -186,6 +204,7 @@ word definition()
       if(tok != ';')
       {
         printf("Error: expected ; \n");
+        errorCount++;
         rtn = -1;
       }
       else
@@ -214,6 +233,7 @@ word definition()
     printf("Token '%s' on line: %d\n", getText(), getLineNumber());
     while(1);
     rtn = -1;
+    errorCount++;
     exit(1);
   }
 
@@ -244,6 +264,8 @@ word definition()
 word statement()
 {
   word rtn = 0;
+  word flags;
+  word value;
 
   /* TODO: fill this in */
 //  printf("In statement with token: %d\n", tok);
@@ -255,21 +277,25 @@ word statement()
     {
     case TOK_AUTO:                         /* keyword auto */
       tok = scan();
-//      printf("auto definition\n");
+      printf("auto definition\n");
       if(tok != TOK_IDENT)
       {
         /* error */
         rtn = -1;
+        errorCount++;
         tok = scan(); /* what now? */
       }
       else                                 /* got name */
       {
         /* put into table, on stack */
+        strcpy(localText, getText());
+        printf("AUTO identifier is %s\n", localText);
         tok = scan();
         if(tok == TOK_INT || tok == TOK_STRING || tok == TOK_IDENT)  /* initializer? */
         {
           printf("Found initializer of type %d\n", tok);
-          /* TODO initialize */
+          sym_insert(localText, FLAG_AUTO, dataCounter++);
+          /* TODO initialize and write data block to .obj */
           tok = scan();
           while(tok == ',')
           {
@@ -283,16 +309,22 @@ word statement()
             printf("Initializer expected ';' \n");
             while(1);
             rtn = -1;
+            errorCount++;
           }
           else
           {
 //            printf("Found semicolon at end of auto init \n");
             //while(1);
+            sym_insert(localText, FLAG_AUTO, dataCounter++); /* TODO extrn? */
             tok = scan();
           }
         }
         else if(tok == ';')  /* not initialized, look for terminator */
         {
+          
+          printf("Found semi at end of auto, inserting %s\n ", localText);
+          printf("%d \n", sym_insert(localText, FLAG_AUTO, dataCounter++) );
+          printf("...inserted\n");
           tok = scan();
         }
       }
@@ -305,16 +337,21 @@ word statement()
         /* error */
         /* TODO what else here? scan? */
         rtn = -1;
+        errorCount++;
       }
       else
       {
         /* TODO put into table */
+        strcpy(localText, getText());
+        sym_insert(localText, FLAG_EXTRN, 0); /* TODO: output undef ref here?? */
+        
         tok = scan();
         if(tok != ';')
         {
           /* error */
           /* TODO what else here? */
           rtn = -1;
+          errorCount++;
         }
       }
       break;
@@ -890,6 +927,10 @@ word term()
 word factor() /* rvalue */
 {
   word rtn;
+  word symIndex;
+  word flags;
+  word value;
+  
   rtn = 0;
   //printf("FACTOR\n");
   word val;
@@ -949,8 +990,8 @@ word factor() /* rvalue */
     valueType = LVALUE;
     tokChars = getText();
     /* TODO convert this to B */
-    char localText[128];
-    strcpy(localText,tokChars);
+
+    strcpy(localText,getText()); /* TODO either call getText or just use tokChars */
     //printf("Got identifier: %s\n",localText);
     tok = scan();
     if(tok == '[')         /* vector */
@@ -987,8 +1028,33 @@ word factor() /* rvalue */
     }
     else /* just a plain variable */
     {
-      // TODO val = lookup(getText);
-      printf("\tPUSH\t%s\t\t;Get a variable address \n",localText);
+      // TODO THESE PUSH the ADDRESS of the VARIABLE !!! 
+      symIndex = sym_find(localText);
+      flags = sym_getFlags(symIndex);
+      value = sym_getValue(symIndex);
+      printf("PLAIN: %04x %04x %s\n", flags, value, localText);
+      
+      if(flags & FLAG_EXTRN | flags & FLAG_FUNCTION)  /* extrn so absolute address */
+      {
+        printf("\tPSHI\t%04X\t\t;%s\n", value, localText);
+        /* TODO relocation of extrn address */
+      }
+      else if(flags & FLAG_AUTO)    /* A local var */
+      {
+        printf("\tGETFP\t%04X\t\t;%s\n", value, localText);
+      }
+      else if(flags & FLAG_PARAMETER)  /* A parameter */
+      {
+        printf("\tGETPP\t%04X\t\t;%s\n", value, localText);
+      }
+      else
+      {
+        /* Something is wrong */
+        /* ERROR */
+        rtn = -1;
+      }
+      
+      // TODO remove printf("\tPUSH\t%s\t\t;Get a variable address \n",localText);
     }
     
     break;
@@ -1033,7 +1099,28 @@ word factor() /* rvalue */
   return(rtn);
 }
 
+/* ***********************************************************************
+ * @fn skipTo
+ * @brief Error recover: skips tokens until it scans nextToken or EOF.
+ * @param nextToken The token to skip to/over.
+ * @return Dunno yet
+ * ******************************************************************** */
+word skipTo(word nextToken)
+{
+  word rtn = 0;
+  while((tok = scan()) != nextToken);
 
+
+  return rtn;
+}
+
+/* ***********************************************************************
+ * @fn main
+ * @brief Oversee compilation of a single file.
+ * @param[in] argc Number of arguments passed from command line
+ * @param[in] argv Array of pointers to the arguments
+ * @return Error code: 0 for success, or error code.
+ * ******************************************************************** */
 int main(int argc, char** argv)
 {
   int rtn = 0;
@@ -1074,6 +1161,6 @@ int main(int argc, char** argv)
 }
 
 
-  
+
     
 
