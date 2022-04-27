@@ -5,10 +5,10 @@ all:	bc
 bpp:
 
 bl:
-	
 
-bc:	 parser.o scanner.o  symtable.o #blib.o system.o
-	gcc -o bc parser.o scanner.o  symtable.o #blib.o system.o
+
+bc:	 parser.o scanner.o  symtable.o codegen.o #blib.o system.o
+	gcc -o bc parser.o scanner.o  symtable.o codegen.o #blib.o system.o
 
 ba:
 
@@ -28,6 +28,9 @@ scanner.o:	scanner.c scanner.h definitions.h
 
 symtable.o:	symtable.c symtable.h definitions.h
 	gcc -c symtable.c
+
+codegen.o:	codegen.c codegen.h definitions.h
+	gcc -c codegen.c
 
 clean:
 	rm *.o bc

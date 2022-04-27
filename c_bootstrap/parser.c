@@ -11,6 +11,7 @@
 #include "parser.h"
 #include "scanner.h"
 #include "symtable.h"
+#include "codegen.h"
 
 
 // typedef int16_t word;
@@ -266,6 +267,8 @@ word statement()
   word rtn = 0;
   word flags;
   word value;
+  word br1;
+  word br2;
 
   /* TODO: fill this in */
 //  printf("In statement with token: %d\n", tok);
@@ -277,7 +280,7 @@ word statement()
     {
     case TOK_AUTO:                         /* keyword auto */
       tok = scan();
-      printf("auto definition\n");
+      //printf("auto definition\n");
       if(tok != TOK_IDENT)
       {
         /* error */
@@ -289,11 +292,11 @@ word statement()
       {
         /* put into table, on stack */
         strcpy(localText, getText());
-        printf("AUTO identifier is %s\n", localText);
+        //printf("AUTO identifier is %s\n", localText);
         tok = scan();
         if(tok == TOK_INT || tok == TOK_STRING || tok == TOK_IDENT)  /* initializer? */
         {
-          printf("Found initializer of type %d\n", tok);
+          //printf("Found initializer of type %d\n", tok);
           sym_insert(localText, FLAG_AUTO, dataCounter++);
           /* TODO initialize and write data block to .obj */
           tok = scan();
@@ -322,9 +325,12 @@ word statement()
         else if(tok == ';')  /* not initialized, look for terminator */
         {
           
-          printf("Found semi at end of auto, inserting %s\n ", localText);
-          printf("%d \n", sym_insert(localText, FLAG_AUTO, dataCounter++) );
-          printf("...inserted\n");
+          //printf("Found semi at end of auto, inserting %s\n ", localText);
+          //printf("%d \n", sym_insert(localText, FLAG_AUTO, dataCounter++) );
+          
+          sym_insert(localText, FLAG_AUTO, dataCounter++);
+
+          //printf("...inserted\n");
           tok = scan();
         }
       }
@@ -390,22 +396,26 @@ word statement()
       break;
     }
     printf("\tJZ\tELSEPART\n");
+    gen_if_start();
     tok = scan();
 //    printf("IF STATEMENT -- entering statement\n");
     statement();
-    printf("\tJMP\tENDIF\n");
-    printf("ELSEPART\n");
+    //printf("\tJMP\tENDIF\n");
+    //printf("ELSEPART\n");
+    gen_if_else();
     if(tok == TOK_ELSE)
     {
       tok = scan();
       statement();
     }
-    printf("ENDIF\n");
+    //printf("ENDIF\n");
+    gen_if_end();
     /* todo */
     break;
     
   case TOK_WHILE:  /* while '(' rvalue ')' statement */
-    printf("WHILESTART:\n");
+    //printf("WHILESTART:\n");
+    br1 = gen_while_start();
     tok = scan();
     if(tok != '(')
     {
@@ -421,12 +431,15 @@ word statement()
       rtn = -1;
       break;
     }
-    printf("\tJZ\tWHILEEND\n");
+    //printf("\tJZ\tWHILEEND\n");
+    br2 = gen_while_exp();
+    // TODO fix thisgen_while_end();
     tok = scan();
     statement();
     /* todo */
-    printf("\tJMP\tWHILESTART\n");
-    printf("WHILEEND:\n");
+    //printf("\tJMP\tWHILESTART\n");
+    //printf("WHILEEND:\n");
+    gen_while_end(br1, br2);
     break;
     
   case TOK_SWITCH:  /* switch rvalue statement */
@@ -485,27 +498,7 @@ word statement()
     //printf("...and next tok = %d\n", tok);
     break;
 
-    
-    //statement();
-    //while(tok == ';')
-    //{
-    //  tok = scan();
-    //  if(tok == '}')
-    //  {
-    //    printf("Compound Statement ended \n");
-    //    tok = scan();
-    //    break;
-    //  }
-    //  else
-    //  {
-    //    printf("Comp ST cont ...");
-    //    statement();
-    //  }
-    //}
-    /* todo */
-    //printf("Exiting Compount \n");
-    //break;
-    
+   
   default:         /* [rvalue] ; */
     //printf("EXPRESSION STATEMENT \n");
     expression();
@@ -974,7 +967,7 @@ word factor() /* rvalue */
     }
     else   /* just a number */
     {
-      printf("\tPUSH\t%04d\n", val);
+      printf("\tPSHI\t%04d\n", val);
     }
     
     break;

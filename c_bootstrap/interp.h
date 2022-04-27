@@ -38,12 +38,13 @@ typedef enum RPN_OP
   RPN_OR,               // OR top two stack entries
   RPN_XOR,              // XOR top two stack entries
 
-  RPN_NOT,              // One's complement top stack entry
+  RPN_CPL,              // One's complement top stack entry
   RPN_NEG,              // Two's complement top stack entry
   
 
 
   RPN_BR,               // Branch to following address
+  RPN_BSR,              // Branch to Subroutine at addr
   RPN_BRZ,              // Branch if TOS is zero
   RPN_BRNZ,             // Branch if TOS is not zero
   RPN_FETCH,            // Push value addressed by TOS
