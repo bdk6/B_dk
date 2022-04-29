@@ -6,6 +6,8 @@
 
 #include <stdio.h>
 #include "definitions.h"
+#include "scanner.h"
+#include "codegen.h"
 #include "interp.h"
 
 word genDataCount;
@@ -13,13 +15,51 @@ word genBSSCount;
 word genCodeCount;
 
 word codeBuffer[2048];
+word codeReloc[128];   /* One bit per code word */
+
+FILE* objfile;
+
+/* ***********************************************************************
+ * @fn writeWord
+ * @brief Write a word to the obj file in Big Endian formal.
+ * return 0 on success
+ * ******************************************************************** */
+word writeWord(word wrd)
+{
+  word rtn = 0;
+  word status = 0;
+  status = fputc((wrd >> 8) & 0xff, objfile);
+  if(rtn == 0xffff)
+  {
+    /* ERROR end of file */
+    rtn = status;
+  }
+  else
+  {
+    status = fputc((wrd & 0xff), objfile);
+    if(rtn == 0xffff)
+    {
+      /* ERROR end of file */
+      rtn = status;
+    }
+  }
+
+  return rtn;
+}
 
 /* ***********************************************************************
  * @fn gen_initialize
  * @brief Get everything ready for code generation
  * return 0 on success
  * ******************************************************************** */
-word gen_initialize()
+
+
+/* ***********************************************************************
+ * @fn gen_initialize
+ * @brief Get everything ready for code generation
+ * return 0 on success
+ * ******************************************************************** */
+word gen_initialize(char* filename)
 {
   word rtn = 0;
   word counter = 0;
@@ -34,6 +74,12 @@ word gen_initialize()
     counter++;
   }
 
+  objfile = fopen(filename, "w");
+  if(objfile == NULL)
+  {
+    rtn = 1;
+  }
+
   return rtn;
 }
 
@@ -45,6 +91,7 @@ word gen_initialize()
 word gen_finish()
 {
   word rtn = 0;
+  rtn = fclose(objfile);
 
 
   return rtn;
@@ -54,11 +101,23 @@ word gen_finish()
 /* ***********************************************************************
  * @fn gen_startDataBlock
  * @brief Start writing an initialized data block.
- * return 0 on success
+ * return Offset of this data item/block
  * ******************************************************************** */
-word gen_startDataBlock()
+/* ***********************************************************************
+ * Data Block
+ *   0  ID
+ *   1  OFFSET
+ *   2  NAME, 0
+ *   N  WORDS
+ *   N  DATA
+ *   M  RELOC
+ * ******************************************************************** */
+word gen_startDataBlock(char* name)
 {
   word rtn = 0;
+  rtn = writeWord(OBJ_DATA);          /* Mark it as a data block */
+  rtn |= writeWord(genDataCount);     /* Set the offset */
+  /* TODO Name? */
 
 
   return rtn;
@@ -105,13 +164,16 @@ word gen_startBSSBlock()
 }
 
 /* ***********************************************************************
- * @fn gen_addBSSWord
- * @brief Add a word to the unitialized data block.
+ * @fn gen_addBSSWords
+ * @brief Add a number of words (n) to the BSS block
+ * @param[in] 
  * return Offset of this data item.
  * ******************************************************************** */
-word gen_addBSSWord(word d)
+word gen_addBSSWord(word n)
 {
   word rtn = 0;
+  rtn = genBSSCount;
+  genBSSCount += n;
 
   return rtn;
 }
@@ -124,6 +186,65 @@ word gen_addBSSWord(word d)
 word gen_endBSSBlock()
 {
   word rtn;
+
+  return rtn;
+}
+
+/* ***********************************************************************
+ * @fn gen_startCodeBlock
+ * @brief Start building a code block.
+ * return 
+ * ******************************************************************** */
+word gen_startCodeBlock()
+{
+  word rtn = 0;
+  word i;
+  genCodeCount = 0;
+  for(i = 0; i < 128; i++)
+  {
+    codeReloc[i] = 0;      /* Clear relocation bits */
+  }
+  
+  return rtn;
+}
+
+/* ***********************************************************************
+ * @fn gen_addCodeWord
+ * @brief Add a word to the current code block.
+ * @param[in] d Word to add to code.
+ * @param[in] reloc If non-zero, make this word relocatable.
+ * return  Offset of this word.
+ * ******************************************************************** */
+word gen_addCodeWord(word d, word reloc)
+{
+  word rtn = 0;
+  word rwrd;
+  word rbit;
+  rtn = genCodeCount;
+  codeBuffer[genCodeCount] = d;
+  if(reloc)
+  {
+    rwrd = genCodeCount >> 4;
+    rbit = genCodeCount & 15;
+    codeReloc[rwrd] |= (1 << rbit);  /* set reloc bit for this word */
+  }
+  genCodeCount++;
+
+  return rtn;
+}
+
+/* ***********************************************************************
+ * @fn gen_endCodeBlock
+ * @brief Finalize and write the current code block
+ * return 
+ * ******************************************************************** */
+word gen_endCodeBlock()
+{
+  word rtn = 0;
+  // write header
+  // write code
+  // write reloc
+  // write extrns
 
   return rtn;
 }
@@ -150,14 +271,19 @@ word gen_if_start()
 /* ***********************************************************************
  * @fn gen_if_else
  * @brief Generate ELSE branch for IF statement.
+ * @param[in] start_addr The starting IF address to update.
  * return Location of branch address
  * ******************************************************************** */
-word gen_if_else()
+word gen_if_else(word start_addr)
 {
   word rtn = 0;
-  rtn = genCodeCount;
-  codeBuffer[genCodeCount] = 98; // code for jmp
-  genCodeCount++;
+  
+  codeBuffer[genCodeCount++] = RPN_BR; /* Jump over the ELSE statement */
+  rtn = genCodeCount;              /* This address needs to be updated */
+  codeBuffer[genCodeCount++] = 0;  /* BRanch address to exit IF */
+  /* update the IF jmp address */
+  codeBuffer[start_addr] = genCodeCount; /* IF comes here on FALSE */
+
   /* TODO  Add address to relocation table */
 
   printf("\tBR\tIF_END\n");
@@ -169,12 +295,67 @@ word gen_if_else()
 /* ***********************************************************************
  * @fn gen_if_end
  * @brief Finalize IF statement
+ * @param[in] previous_addr Address of previous BR to update.
  * return 0 on success
  * ******************************************************************** */
-word gen_if_end()
+word gen_if_end(word previous_addr)
 {
   word rtn = 0;
+
+  codeBuffer[previous_addr] = genCodeCount;  /* make IF or ELSE jump here */
   printf("IF_END\n");
+
+  return rtn;
+}
+
+/* ***********************************************************************
+ * @fn gen_cond_start
+ * @brief Begin a conditional statement
+ * @param[in] 
+ * return 0 on success
+ * ******************************************************************** */
+word gen_cond_start()
+{
+  word rtn = 0;
+
+  return rtn;
+}
+
+/* ***********************************************************************
+ * @fn gen_cond_true
+ * @brief Finalize IF statement
+ * @param[in] previous_addr Address of previous BR to update.
+ * return 0 on success
+ * ******************************************************************** */
+word gen_cond_true()
+{
+  word rtn = 0;
+
+  return rtn;
+}
+
+/* ***********************************************************************
+ * @fn gen_cond_false
+ * @brief Finalize IF statement
+ * @param[in] previous_addr Address of previous BR to update.
+ * return 0 on success
+ * ******************************************************************** */
+word gen_cond_false(word addr1)
+{
+  word rtn = 0;
+
+  return rtn;
+}
+
+/* ***********************************************************************
+ * @fn gen_cond_end
+ * @brief Finalize IF statement
+ * @param[in] previous_addr Address of previous BR to update.
+ * return 0 on success
+ * ******************************************************************** */
+word gen_cond_end()
+{
+  word rtn = 0;
 
   return rtn;
 }
@@ -240,6 +421,8 @@ word gen_function_call(word addr)
   word rtn = 0;
   printf("\tBSR\t%04X\n", addr);
   // TODO write reloc
+
+  // TODO pop parameters
 
   return rtn;
 }
@@ -310,6 +493,68 @@ word gen_get_extrn(word addr)
 
   return rtn;
 }
+
+/* ***********************************************************************
+ * @fn gen_binop
+ * @brief Generate code for most binary operators.
+ * @param[in] op The token for the desired operation.
+ * return 
+ * ******************************************************************** */
+word gen_binop(word op)
+{
+  word rtn = 0;
+  switch(op)
+  {
+  case '+':
+    printf("\tADD\n");
+    break;
+  case '-':
+    printf("\tSUB\n");
+    break;
+  case '*':
+    printf("\tMUL\n");
+    break;
+  case '/':
+    printf("\tDIV\n");
+    break;
+  case '%':
+    printf("\tMOD\n");
+    break;
+  case '|':
+    printf("\tOR\n");
+    break;
+  case '&':
+    printf("\tAND\n");
+    break;
+    
+
+  case TOK_EQ_EQ:
+    printf("\tCMPEQ\n");
+    break;
+  case TOK_NOT_EQ:
+    printf("\tCMPNEQ\n");
+    break;
+  case '<':
+    printf("\tCMPLESS\n");
+    break;
+  case '>':
+    printf("\tCMPGRT\n");
+    break;
+  case TOK_LESS_EQ:
+    printf("\tCMPLEQ\n");
+    break;
+  case TOK_GREAT_EQ:
+    printf("\tCMPGEQ\n");
+    break;
+    
+
+
+  }
+  
+
+  return rtn;
+}
+
 
 /* ***********************************************************************
  * @fn gen_add

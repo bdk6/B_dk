@@ -96,11 +96,9 @@ word definition()
   word value;
   word stackCounter;  /* auto/parameter offset from paramptr/frameptr */
   
-//  printf("Starting Definition \n");
   if(tok == TOK_IDENT) /* name */
   {
     /* TODO: ... */
-//    printf("Found Name ");
     /* If it's an ident we need the name */
     strcpy(localText, getText());
     tok = scan();
@@ -110,7 +108,6 @@ word definition()
     {
       /* vector */
       /* constant ] ival {, ival } */
-//      printf("Vector ");
       sym_insert(localText, FLAG_EXTRN | FLAG_VEC, dataCounter++);
       tok = scan();
       if(tok == TOK_INT)  /* constant */
@@ -151,7 +148,6 @@ word definition()
     {
       /* [ name { , name } ] ) statement */
       
-//      printf("Function ");
       sym_insert(localText, FLAG_FUNCTION, codeCounter);
       if(inFunction)       /* A function inside another is not allowed */
       {
@@ -184,7 +180,6 @@ word definition()
       if(tok == ')')
       {
         tok = scan();
-//        printf("Look for statement...\n");
         statement();
       }
       else
@@ -194,13 +189,11 @@ word definition()
         rtn = -1;
       }
       inFunction = 0;     /* Tell the world we are done */
-//      printf("Exiting Function \n");
     }
 
     /* ********** Initialized Variable ********** */
     else if(tok == TOK_INT || tok == TOK_IDENT || tok == TOK_STRING)
     {
-//      printf( "Initalized simple variable \n");
       tok = scan();
       if(tok != ';')
       {
@@ -218,7 +211,6 @@ word definition()
     else if(tok == ';')
     {
       /* simple variable */
-//      printf("Simple Variable \n");
       value = dataCounter;
       dataCounter++;
       flags = FLAG_EXTRN;
@@ -238,24 +230,8 @@ word definition()
     exit(1);
   }
 
-    
-
-//  printf("Exiting Definition \n");
   return rtn;
 }
-
-/* ***********************************************************************
- * @fn lval
- * @brief parses an lvalue
- * @return parse status
- * ******************************************************************** */
-//word lval()
-//{
-//  word rtn = 0;
-//  /* TODO: fill this in */
-
-//  return rtn;
-//}
 
 /* ***********************************************************************
  * @fn statement
@@ -271,16 +247,13 @@ word statement()
   word br2;
 
   /* TODO: fill this in */
-//  printf("In statement with token: %d\n", tok);
   while(tok == TOK_AUTO || tok == TOK_EXTRN
         || tok == TOK_CASE ) // TODO labels || tok == TOK_IDENT)
   {
-    //printf("Statement tok = %d \n", tok);
     switch(tok)
     {
     case TOK_AUTO:                         /* keyword auto */
       tok = scan();
-      //printf("auto definition\n");
       if(tok != TOK_IDENT)
       {
         /* error */
@@ -292,11 +265,9 @@ word statement()
       {
         /* put into table, on stack */
         strcpy(localText, getText());
-        //printf("AUTO identifier is %s\n", localText);
         tok = scan();
         if(tok == TOK_INT || tok == TOK_STRING || tok == TOK_IDENT)  /* initializer? */
         {
-          //printf("Found initializer of type %d\n", tok);
           sym_insert(localText, FLAG_AUTO, dataCounter++);
           /* TODO initialize and write data block to .obj */
           tok = scan();
@@ -316,8 +287,6 @@ word statement()
           }
           else
           {
-//            printf("Found semicolon at end of auto init \n");
-            //while(1);
             sym_insert(localText, FLAG_AUTO, dataCounter++); /* TODO extrn? */
             tok = scan();
           }
@@ -325,12 +294,8 @@ word statement()
         else if(tok == ';')  /* not initialized, look for terminator */
         {
           
-          //printf("Found semi at end of auto, inserting %s\n ", localText);
-          //printf("%d \n", sym_insert(localText, FLAG_AUTO, dataCounter++) );
-          
           sym_insert(localText, FLAG_AUTO, dataCounter++);
 
-          //printf("...inserted\n");
           tok = scan();
         }
       }
@@ -347,7 +312,6 @@ word statement()
       }
       else
       {
-        /* TODO put into table */
         strcpy(localText, getText());
         sym_insert(localText, FLAG_EXTRN, 0); /* TODO: output undef ref here?? */
         
@@ -376,7 +340,6 @@ word statement()
   switch(tok)
   {
   case TOK_IF:  /* if( rvalue ) statement [ else statement ] */
-//    printf("IF STATEMENT \n");
     tok = scan();
     if(tok != '(')
     {
@@ -385,9 +348,7 @@ word statement()
       break;
     }
     tok = scan();
-    // printf("IF STATEMENT -- entering expression\n");
     expression();
-    //printf("IF STATEMENT -- exited expression\n");
     if(tok != ')')
     {
       /* error */
@@ -395,26 +356,21 @@ word statement()
       rtn = -1;
       break;
     }
-    printf("\tJZ\tELSEPART\n");
-    gen_if_start();
+    br1 = gen_if_start();
     tok = scan();
-//    printf("IF STATEMENT -- entering statement\n");
     statement();
-    //printf("\tJMP\tENDIF\n");
-    //printf("ELSEPART\n");
-    gen_if_else();
+    // TODO ! fix gen_if_else();
     if(tok == TOK_ELSE)
     {
+      br1 = gen_if_else(br1);
       tok = scan();
       statement();
     }
-    //printf("ENDIF\n");
-    gen_if_end();
+    gen_if_end(br1);
     /* todo */
     break;
     
   case TOK_WHILE:  /* while '(' rvalue ')' statement */
-    //printf("WHILESTART:\n");
     br1 = gen_while_start();
     tok = scan();
     if(tok != '(')
@@ -431,14 +387,11 @@ word statement()
       rtn = -1;
       break;
     }
-    //printf("\tJZ\tWHILEEND\n");
     br2 = gen_while_exp();
-    // TODO fix thisgen_while_end();
+    // TODO fix this gen_while_end();
     tok = scan();
     statement();
     /* todo */
-    //printf("\tJMP\tWHILESTART\n");
-    //printf("WHILEEND:\n");
     gen_while_end(br1, br2);
     break;
     
@@ -464,19 +417,17 @@ word statement()
     break;
     
   case TOK_GOTO:   /* goto rvalue ; */
-//    printf("goto st\n");
     tok = scan();
     /* todo */
     break;
   case TOK_RETURN: /* return [ (rvalue) ] ; */
-//    printf("return st\n");
     tok = scan();
     if(tok != ';')
     {
       /* ERROR */
-      /* TODO need an expression parse here */
       expression();
     }
+    // TODO should be inside above if or something 
     if(tok != ';')
     {
       /* ERROR  expected ; */
@@ -485,27 +436,19 @@ word statement()
     tok = scan();
     break;
   case '{':        /* '{' {statement} '}' */
-    //printf("Compound st\n");
     tok = scan();
     while(tok != '}')
     {
-      //printf("In compound statement this tok = %d\n", tok);
       statement();
-      //printf("tok after statement = %d\n", tok);
     }
-    //printf("Compound statement ended this tok = %d\n",tok);
     tok = scan();
-    //printf("...and next tok = %d\n", tok);
     break;
-
    
   default:         /* [rvalue] ; */
-    //printf("EXPRESSION STATEMENT \n");
     expression();
     if(tok == ';')                  /* Good, found the end */
     {
       tok = scan();
-      //printf("End of EXP st next tok=%d\n", tok);
       break;
     }
     else                            /* Nope! Error */
@@ -532,40 +475,12 @@ word statement()
 word expression()
 {
   word rtn = 0;
-//  printf("EXPRESSION \n");
   assignexp();
 
   /* TODO: */
 
   return rtn;
 }
-
-/* ***********************************************************************
- * @fn rvalue
- * @brief parses an rvalue
- * @return parse status
- * ******************************************************************** */
-/* rvalue = ( rvalue )
-          | lvalue               ( name, *rvalue, rvalue [ rvalue ] )
-          | constant             ( int, string )
-          | lvalue assign rvalue
-          | inc-dec lvalue
-          | lvalue inc-dec
-          | unary rvalue
-          | & lvalue
-          | rvalue binary rvalue
-          | rvalue ? rvalue | rvalue
-          | rvalue ( {rvalue {, rvalue} } )
-*/
-
-//word rvalue()
-//{
-//  word rtn = 0;
-
-//  /* TODO: */
-
-//  return rtn;
-//}
 
 /* ***********************************************************************
  * @fn isassignop
@@ -610,13 +525,11 @@ word assignexp()
   word thisTok;
 
   /* TODO */   /* cond() while( is assign) { assignexp() } */
-  //printf("ASSIGN EXPRESSION\n");
   conditionalexp();
   while( isassignop(tok))
   {
     /* TODO */
     thisTok = tok;
-    //printf("Found ASSIGNOP tok=%d\n",tok);
     tok = scan();
     assignexp();
     printf("\tDOASSIGN_%03d\n",thisTok);
@@ -638,22 +551,26 @@ word conditionalexp()
   /* TODO */
   /* RVALUE/LVALUE */
   /* rest of function */
-  //printf("CONDITIONAL EXPRESSION\n");
+  word addr1;
+  word addr2;
 
   rtn = orexp();
   if(tok == '?')
   {
-    printf("\tJMZ\tFALSEPART\t\t;If cond exp was false, jump over true part\n");
+    // printf("\tJMZ\tFALSEPART\t\t;If cond exp was false, jump over true part\n");
+    addr1 = gen_cond_true();
     tok = scan();
     rtn = orexp();
     trueValue = valueType;  /* Get true part value */
-    printf("FALSEPART: \n");
+    // printf("FALSEPART: \n");
+    addr2 = gen_cond_false(addr1);
     if(tok == ':')
     {
       tok = scan();
       rtn = orexp();
       falseValue = valueType; /* Get false part value */
-      printf("\tJMP\tENDOFCOND\n");
+      // printf("\tJMP\tENDOFCOND\n");
+      gen_cond_end(addr2);
     }
     else
     {
@@ -667,10 +584,9 @@ word conditionalexp()
     {
       valueType = LVALUE; /* defaulted to RVALUE */
     }
-    printf("ENDOFCOND\n");
+    //printf("ENDOFCOND\n");
   }
     
-
   return rtn;
 }
 
@@ -690,7 +606,8 @@ word orexp()
     valueType = RVALUE;
     tok = scan();
     rtn = andexp();
-    printf("\tOR \n");
+    //printf("\tOR \n");
+    gen_or();
   }
 
   return rtn;
@@ -712,7 +629,8 @@ word andexp(void)
     valueType = RVALUE;
     tok = scan();
     rtn = equalexp();
-    printf("\tAND \n");
+    //printf("\tAND \n");
+    gen_and();
   }
 
   return rtn;
@@ -737,14 +655,18 @@ word equalexp(void)
     valueType = RVALUE;
     tok = scan();
     rtn = relateexp();
-    if(thisTok == TOK_EQ_EQ)
-    {
-      printf("\tCMPEQ \n");
-    }
-    else
-    {
-      printf("\tCMPNEQ \n");
-    }
+    gen_binop(thisTok);
+    
+    //if(thisTok == TOK_EQ_EQ)
+    //{
+    //  //printf("\tCMPEQ \n");
+    //  gen_equal();
+    //}
+    //else
+    //{
+    //  //printf("\tCMPNEQ \n");
+    //  gen_notequal();
+    //}
   }
 
   return rtn;
