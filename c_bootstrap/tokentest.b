@@ -10,6 +10,7 @@ main(argc, argv)
   extrn extvar;
   extrn svar;
   svar = svar * argc + 2;
+  svar = !svar + ~nuthervar - -svar;
   if(ident < 99)
   {
     ident = ident + 4;

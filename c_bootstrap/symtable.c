@@ -120,10 +120,6 @@ word comparesym(char* name, word index)
     match = 0;
   }
   
-  
-  
-
-  
   //word rtn = 2; /* start by assuming we found it */
   //word address = symtable[(index - 1) * 3]; /* 3 is # words per entry */
   //if(address == 0)
@@ -145,7 +141,6 @@ word comparesym(char* name, word index)
   //  rtn = 2;
   //}
   
-
   return match;
 }
 
@@ -253,7 +248,7 @@ word sym_insert(char* name, word flags, word val)
     /* TODO put it in the table */
     /* TODO put the string in proper place */
     length = strlen(name) + 1; /* Add NULL terminator */
-    printf("The name is *%s* len: %d at: %d\n", name, strlen(name) + 1, stringpointer);
+    //printf("name is *%s* len: %d at: %d\n", name, strlen(name) + 1, stringpointer);
     if(stringpointer + length < 16000)   /* Make sure there is room at the inn */
     {
       symtable[location] = stringpointer;  /* Save string in stringtable */
@@ -271,7 +266,6 @@ word sym_insert(char* name, word flags, word val)
   
   return rtn;
 }
-
 
 
 /* ***********************************************************************
@@ -368,12 +362,6 @@ word sym_dumpTable(void)
     }
     index++;
   }
-//  for(int i = 1; i < 24; i++)  for debugging only
-//  {
-//    int c = stringtable[i];
-//    printf("%02x ", c);
-//  }
-  
   return rtn;
 }
 

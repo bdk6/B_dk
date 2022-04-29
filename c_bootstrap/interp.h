@@ -40,6 +40,7 @@ typedef enum RPN_OP
 
   RPN_CPL,              // One's complement top stack entry
   RPN_NEG,              // Two's complement top stack entry
+  RPN_NOT,              // 1 if TOS = 0, 0 otherwise
   
 
 

@@ -458,6 +458,7 @@ word gen_goto(word addr)
 /* ***********************************************************************
  * @fn gen_get_parameter
  * @brief Generate code to move a parameter address to TOS.
+ * @param[in] offset Offset of parameter from Parameter Pointer
  * return 
  * ******************************************************************** */
 word gen_get_parameter(word offset)
@@ -471,6 +472,7 @@ word gen_get_parameter(word offset)
 /* ***********************************************************************
  * @fn gen_get_auto
  * @brief Generate code to move an auto var address to TOS.
+ * @param[in] offset Offset of auto from Frame Pointer
  * return 
  * ******************************************************************** */
 word gen_get_auto(word offset)
@@ -526,7 +528,9 @@ word gen_binop(word op)
   case '&':
     printf("\tAND\n");
     break;
-    
+  case '^':
+    printf("\tXOR\n");
+    break;
 
   case TOK_EQ_EQ:
     printf("\tCMPEQ\n");
@@ -546,143 +550,86 @@ word gen_binop(word op)
   case TOK_GREAT_EQ:
     printf("\tCMPGEQ\n");
     break;
-    
 
+  case TOK_SHIFT_LEFT:
+    printf("\tSHL\n");
+    break;
+  case TOK_SHIFT_RIGHT:
+    printf("\tSHR\n");
+    break;
+
+
+  case '=':                    /* =   */
+  case  TOK_EQ_OR:             /* =|  */
+  case  TOK_EQ_AND:            /* =&  */
+  case  TOK_EQ_EQ_EQ:          /* === */
+  case  TOK_EQ_NOT_EQ:         /* =!= */
+  case  TOK_EQ_LESS:           /* =<  */
+  case  TOK_EQ_LESS_EQ:        /* =<= */
+  case  TOK_EQ_GREAT:          /* =>  */
+  case  TOK_EQ_GREAT_EQ:       /* =>= */
+  case  TOK_EQ_SHIFT_LEFT:     /* =<< */
+  case  TOK_EQ_SHIFT_RIGHT:    /* =>> */
+  case  TOK_EQ_MINUS:          /* =-  */
+  case  TOK_EQ_PLUS:           /* =+  */
+  case  TOK_EQ_MOD:            /* =%  */
+  case  TOK_EQ_STAR:           /* =*  */
+  case  TOK_EQ_SLASH:          /* =/  */
+
+  default:
+    /* ERROR: illegal operator */
+    break;
+    
 
   }
   
-
   return rtn;
 }
 
-
 /* ***********************************************************************
- * @fn gen_add
- * @brief Generate code to add two numbers.
+ * @fn gen_unary
+ * @brief Generate code for most unary operators.
+ * @param[in] op The operator token to generate.
  * return 
  * ******************************************************************** */
-word gen_add()
+word gen_unary(word op)
 {
   word rtn = 0;
-  printf("\tADD\n");
+
+  switch(op)
+  {
+  case '-':
+    printf("\tNEG\n");
+    break;
+  case '~':
+    printf("\tCPL\n");
+    break;
+  case '!':
+    printf("\tNOT\n");
+    break;
+  case '&':
+    printf("\tTODO FIX ADDROF \n");
+    /* TODO FIX  -- remove fetch */
+    break;
+  case '*':
+    printf("\tFETCH\n");
+    break;
+
+  default:
+    /* ERROR: illegal operator */
+    break;
+
+  }
 
   return rtn;
 }
 
-/* ***********************************************************************
- * @fn gen_subtract
- * @brief Generate code to subtract two numbers.
- * return 
- * ******************************************************************** */
-word gen_subtract()
+
+word gen_literal(word val)
 {
-  word rtn = 0;
-  printf("\tSUB\n");
+  printf("\tPSHI\t%04X\n", val);
 
-  return rtn;
-}
-
-/* ***********************************************************************
- * @fn gen_multiply
- * @brief Generate code to multiply two numbers.
- * return 
- * ******************************************************************** */
-word gen_multiply()
-{
-  word rtn = 0;
-  printf("\tMUL\n");
-
-  return rtn;
-}
-
-/* ***********************************************************************
- * @fn gen_divide
- * @brief Generate code to divide two numbers.
- * return 
- * ******************************************************************** */
-word gen_divide()
-{
-  word rtn = 0;
-  printf("\tDIV\n");
-
-  return rtn;
-}
-
-/* ***********************************************************************
- * @fn gen_modulo
- * @brief Generate code to take one number modulo another.
- * return 
- * ******************************************************************** */
-word gen_modulo()
-{
-  word rtn = 0;
-
-  return rtn;
-}
-
-/* ***********************************************************************
- * @fn gen_and
- * @brief Generate code to AND two numbers.
- * return 
- * ******************************************************************** */
-word gen_and()
-{
-  word rtn = 0;
-  printf("\tAND\n");
-
-  return rtn;
-}
-
-/* ***********************************************************************
- * @fn gen_or
- * @brief Generate code to OR two numbers.
- * return 
- * ******************************************************************** */
-word gen_or()
-{
-  word rtn = 0;
-  printf("\tOR\n");
-
-  return rtn;
-}
-
-/* ***********************************************************************
- * @fn gen_xor
- * @brief Generate code to XOR two numbers.
- * return 
- * ******************************************************************** */
-word gen_xor()
-{
-  word rtn = 0;
-  printf("\tXOR\n");
-
-  return rtn;
-}
-
-/* ***********************************************************************
- * @fn gen_negate
- * @brief Generate code to take negative of a number.
- * return 
- * ******************************************************************** */
-word gen_negate()
-{
-  word rtn = 0;
-  printf("\tNEG\n");
-
-  return rtn;
-}
-
-/* ***********************************************************************
- * @fn gen_complement
- * @brief Generate code to take (one's) complement of a number.
- * return
- * ******************************************************************** */
-word gen_complement()
-{
-  word rtn = 0;
-  printf("\tCPL\n");
-
-  return rtn;
+  return 0;
 }
 
 

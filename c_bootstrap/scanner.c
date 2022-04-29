@@ -202,7 +202,7 @@ word convertEscape(word ch)
     // leave it
     break;
   case '\'':        /* '  single quote */
-    /* hmmm */
+    /* TODO hmmm */
     break;
   case '"':         /*  " double quote */
     /* leave it */
@@ -276,10 +276,6 @@ word scan(void)
     /* this character is NOT part of identifier */
     unnext(ch); // ungetc(ch, infile);
     tok = iskeyword(ident);
-//    printf("IDENT characters are: *%s*\n", ident);
-    //printf("%s %d %s \n", tokNames[tok-256],stringcount,ident);
-    //for(int i = 0; i < stringcount; i++) putchar(ident[i]);
-    //putchar('\n');
   }
 
   /* ******************** Numbers ******************** */
@@ -532,7 +528,6 @@ word scan(void)
     {
       unnext(ch1); // ungetc(ch1, infile);
     }
-    //printf("Assign op: %d\n", tok);
   }
 
   if(tok == 65535)                /* kludge! */
@@ -540,54 +535,9 @@ word scan(void)
     tok = TOK_EOF;
   }
   
-//  printf("TOK: %3d\n", tok);
   return tok;
 }
 
-/* ***********************************************************************
- * @fn main
- * @brief Temporary main function to "test" scanner
- * ******************************************************************** */
-int scanmain(int argc, char** argv)
-{
-  int rtn = 0;
-//  printf("argc = %d \n", argc);
-  if(argc >1)
-  {
-    for(int arg = 0; arg < argc; arg++)
-    {
-//      printf("arg %2d: %s \n", arg, argv[arg]);
-    }
-    for(int arg = 1; arg < argc; arg++)
-    {
-      scanfile(argv[arg]);
-      word tok;
-      do
-      {
-        tok = scan();
-//        printf("tok = %3d \n", tok);
-        if(tok == TOK_IDENT)
-        {
-          int i = 0;
-          while(ident[i] != 0)
-          {
-            putchar(ident[i++]);
-          }
-          putchar('\n');
-        }
-      }while(tok > 0);
-    }
-    
-  }
-//  printf("stringpointer is %d \n", stringpointer);
-  
-
-
-  return rtn;
-}
-
-
-  
 /* *************************************************************************
  * @fn getNumber
  * @brief Get the most recent scanned number value.
@@ -606,7 +556,6 @@ word getNumber(void)
  * ********************************************************************** */
 char* getText(void)
 {
-//  printf("getText returning:%s:\n", ident);
   return ident;
 }
 

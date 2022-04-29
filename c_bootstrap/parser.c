@@ -532,7 +532,8 @@ word assignexp()
     thisTok = tok;
     tok = scan();
     assignexp();
-    printf("\tDOASSIGN_%03d\n",thisTok);
+    //printf("\tDOASSIGN_%03d\n",thisTok);
+    gen_binop(thisTok);
   }
 
   return rtn;
@@ -598,7 +599,6 @@ word conditionalexp()
 word orexp()
 {
   word rtn = 0;
-  //printf("OR EXPRESSION\n");
 
   rtn = andexp();
   while(tok == '|')
@@ -606,8 +606,7 @@ word orexp()
     valueType = RVALUE;
     tok = scan();
     rtn = andexp();
-    //printf("\tOR \n");
-    gen_or();
+    gen_binop('|');
   }
 
   return rtn;
@@ -621,7 +620,6 @@ word orexp()
 word andexp(void)
 {
   word rtn = 0;
-  //printf("AND EXPRESSION\n");
 
   rtn = equalexp();
   while(tok == '&')
@@ -629,8 +627,7 @@ word andexp(void)
     valueType = RVALUE;
     tok = scan();
     rtn = equalexp();
-    //printf("\tAND \n");
-    gen_and();
+    gen_binop('&');
   }
 
   return rtn;
@@ -645,7 +642,6 @@ word andexp(void)
 word equalexp(void)
 {
   word rtn = 0;
-  //printf("EQUAL EXPRESSION\n");
   word thisTok;
 
   rtn = relateexp();
@@ -656,17 +652,6 @@ word equalexp(void)
     tok = scan();
     rtn = relateexp();
     gen_binop(thisTok);
-    
-    //if(thisTok == TOK_EQ_EQ)
-    //{
-    //  //printf("\tCMPEQ \n");
-    //  gen_equal();
-    //}
-    //else
-    //{
-    //  //printf("\tCMPNEQ \n");
-    //  gen_notequal();
-    //}
   }
 
   return rtn;
@@ -681,7 +666,6 @@ word equalexp(void)
 word relateexp()
 {
   word rtn = 0;
-  //printf("RELATE EXPRESSION\n");
   word thisTok;
 
   rtn = shiftexp();
@@ -692,24 +676,7 @@ word relateexp()
     valueType = RVALUE;
     tok = scan();
     rtn = shiftexp();
-    switch(thisTok)
-    {
-    case '<':
-      printf("\tCMPLESS \n");
-      break;
-    case '>':
-      printf("\tCMPGRT \n");
-      break;
-    case TOK_LESS_EQ:
-      printf("\tCMPLEQ \n");
-      break;
-    case TOK_GREAT_EQ:
-      printf("\tCMPGEQ \n");
-      break;
-    default:
-      /* ERROR */
-      break;
-    }
+    gen_binop(thisTok);
   }
   
 
@@ -725,7 +692,6 @@ word relateexp()
 word shiftexp()
 {
   word rtn = 0;
-  //printf("SHIFT EXPRESSION\n");
   word thisTok;
 
   rtn = addexp();
@@ -735,14 +701,7 @@ word shiftexp()
     valueType = RVALUE;
     tok = scan();
     rtn = addexp();
-    if(thisTok == TOK_SHIFT_LEFT)
-    {
-      printf("\tSHL \n");
-    }
-    else
-    {
-      printf("\tSHR \n");
-    }
+    gen_binop(thisTok);
   }
   
 
@@ -757,7 +716,6 @@ word shiftexp()
 word addexp()
 {
   word rtn = 0;
-  //printf("ADD EXPRESSION\n");
   word thisTok;
 
   rtn = term();
@@ -767,7 +725,7 @@ word addexp()
     valueType = RVALUE;
     tok = scan();
     rtn = term();
-    printf("\tADD \n");
+    gen_binop(thisTok);
   }
 
   return rtn;
@@ -782,35 +740,18 @@ word term()
 {
   word rtn;
   rtn = 0;
-  //printf("TERM\n");
   word thisTok;
 
   rtn = factor();
   while(tok == '*' | tok == '/' | tok == '%')
   {
     thisTok = tok;
-    //printf("term: thisTok = %d\n", thisTok);
     valueType = RVALUE;
     tok = scan();
     rtn = factor();
-    switch(thisTok)
-    {
-    case '*':
-      printf("\tMUL \n");
-      break;
-    case '/':
-      printf("\tDIV \n");
-      break;
-    case '%':
-      printf("\tMOD \n");
-      break;
-    default:
-      /* ERROR */
-      break;
-    }
+    gen_binop(thisTok);
     
   }
-  
 
   return rtn;
 }
@@ -845,17 +786,15 @@ word factor() /* rvalue */
   word symIndex;
   word flags;
   word value;
+  word thisTok;
   
   rtn = 0;
-  //printf("FACTOR\n");
   word val;
   // TODO word tokChars;
   char* tokChars;
   
-  /* TODO */
   switch(tok)
   {
-
     /*   Constant: literal integer / character */
   case TOK_INT:           /* dec, oct, char, : rvalue */
     valueType = RVALUE;
@@ -889,7 +828,7 @@ word factor() /* rvalue */
     }
     else   /* just a number */
     {
-      printf("\tPSHI\t%04d\n", val);
+      gen_function_call(val); //printf("\tPSHI\t%04d\n", val);
     }
     
     break;
@@ -898,16 +837,14 @@ word factor() /* rvalue */
     valueType = RVALUE;
     val = getNumber();
     tok = scan();
-    printf("\tPUSH\t%04d\t\t;Push string address\n",val);
+    gen_literal(val); // TODO printf("\tPUSH\t%04d\t\t;Push string address\n",val);
     break;
     
   case TOK_IDENT:         /* name */
     valueType = LVALUE;
     tokChars = getText();
     /* TODO convert this to B */
-
     strcpy(localText,getText()); /* TODO either call getText or just use tokChars */
-    //printf("Got identifier: %s\n",localText);
     tok = scan();
     if(tok == '[')         /* vector */
     {
@@ -924,7 +861,7 @@ word factor() /* rvalue */
     }
     else if(tok == '(')      /* function call */
     {
-      printf("Compiling fn() \n");
+      //printf("Compiling fn() \n");
       valueType = RVALUE;
       //word address = lookup(name);
       word address = 1234;
@@ -938,7 +875,8 @@ word factor() /* rvalue */
         printf("Error token is %d \n", tok);
         rtn = -1;
       }
-      printf("\tCALL\t%5d\n", address);
+      //printf("\tCALL\t%5d\n", address);
+      gen_function_call(0);
       tok = scan();
     }
     else /* just a plain variable */
@@ -947,20 +885,19 @@ word factor() /* rvalue */
       symIndex = sym_find(localText);
       flags = sym_getFlags(symIndex);
       value = sym_getValue(symIndex);
-      printf("PLAIN: %04x %04x %s\n", flags, value, localText);
       
       if(flags & FLAG_EXTRN | flags & FLAG_FUNCTION)  /* extrn so absolute address */
       {
-        printf("\tPSHI\t%04X\t\t;%s\n", value, localText);
+        gen_literal(value); // TODO , localText);
         /* TODO relocation of extrn address */
       }
       else if(flags & FLAG_AUTO)    /* A local var */
       {
-        printf("\tGETFP\t%04X\t\t;%s\n", value, localText);
+        gen_get_parameter(value);
       }
       else if(flags & FLAG_PARAMETER)  /* A parameter */
       {
-        printf("\tGETPP\t%04X\t\t;%s\n", value, localText);
+        gen_get_auto(value);
       }
       else
       {
@@ -968,41 +905,18 @@ word factor() /* rvalue */
         /* ERROR */
         rtn = -1;
       }
-      
-      // TODO remove printf("\tPUSH\t%s\t\t;Get a variable address \n",localText);
     }
-    
     break;
 
   case '-':                /* negation  */
-    tok = scan();
-    factor();
-    printf("\tNEG \n");
-    break;
-
   case '!':                /* logical NOT */
-    tok = scan();
-    factor();
-    printf("\tNOT\n");
-    break;
-
   case '~':                /* bitwise NOT */
-    tok = scan();
-    factor();
-    printf("\tCPL\n");
-    break;
-
   case '&':                /* address of */
-    tok = scan();
-    factor();
-    printf("\tADDRESS OF \n");
-    /* TODO hmmmmm */
-    break;
-
   case '*':                /* indirection */
+    thisTok = tok;
     tok = scan();
     factor();
-    printf("\tFETCH\n");
+    gen_unary(thisTok);
     break;
 
   default:
@@ -1055,17 +969,6 @@ int main(int argc, char** argv)
       rtn = 1;
     }
     
-    /*********************
-    infile = open(argv[1], O_RDONLY);
-    if(infile < 0)
-    {
-      printf("Could not open file %s, exiting \n", argv[1]);
-      exit(1);
-    }
-    printf("Parsing %s ... \n", argv[1]);
-    parse(infile);
-    printf("Done.\n");
-    *************************/
   }
   else
   {
