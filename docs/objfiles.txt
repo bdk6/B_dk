@@ -1,0 +1,95 @@
+Object File format and construction
+20220430 wrc
+
+Object files consist of a series of "blocks" of several types.  The final
+object program will be loaded into three "segments" in the machine.  These
+are Code, Data (initialized), and BSS (uninitialized data.)  The running
+program uses two other segments: stack and heap.
+
+The types of object blocks are listed here:
+1. Code -- A series of machine instructions.  For "B" this will normally
+   be a complete function.
+
+2. Data -- Initialized data for the data segement.
+
+3. BSS -- Uninitialized data for the BSS segment.  This block holds only
+   the sizes and locations but no actual data since the data will not
+   be initialized with any specific value.
+
+Types:
+1.  Code : 0x0010
+2.  Data : 0x0011
+3.  BSS  : 0x0012
+
+Code block:
+0  [  0x0001  ] type
+1  [  0xaaaa  ] address
+2  [  0xssss  ] size
+3  [  C    H  ] name
+   [  R  0x00 ] 
+   [   size   ] code
+   [  words   ]
+   
+   [  rel     ] count of code relocations
+   [  addr 0  ] relocation offsets
+   [  addr 1  ]
+   [  addr n  ]
+   
+                Internal data
+   [  size    ] # words of data
+   [  data    ] data words
+   [   ...    ]
+   [  count   ] count of data relocations
+   [  addr 0  ] relocation offsets
+   [  addr 1  ]
+   [  addr n  ]
+
+   [  undef   ] count of undefined
+   [  name 1  ] name string of undefined reference
+   [ ... 0x00 ]
+   [ count    ]  How many times its used
+   [count offs]  Offset(s) where it goes
+   [   ...    ]
+
+   [ checksum ]  -sum(all prev words)
+
+Data Block:
+0  [  0x0002  ] type
+1  [  0xaaaa  ] address
+2  [  0xssss  ] size
+3  [  C    H  ] name (string) of this block (var,vector) (null for unnamed)
+   [  R  0x00 ] 
+   [   size   ] data
+   [  words   ]
+   
+   [  rel     ] count of relocations(may be 0)
+   [  addr 0  ] relocation offsets
+   [  addr 1  ]
+   [  addr n  ]
+
+   [  undef   ] count of undefined (may be 0)
+   [  name 1  ] name (string) of undefined reference
+   [ ... 0x00 ]
+   [ count    ]  How many times its used
+   [count offs]  Offset(s) where it goes
+   [   ...    ]
+   [  name 2  ] name (string) of undefined reference
+   [ ... 0x00 ]
+   [ count    ]  How many times its used
+   [ offsets  ]  list of all offsets where it goes
+
+   [ checksum ]  -sum(all prev words)
+
+
+BSS Block: (uninitialized data)
+0  [  0x0003  ] type
+1  [  0xaaaa  ] address
+2  [  0xssss  ] size
+3  [  C    H  ] name (string) of this block (var,vector) (null for unnamed)
+   [  R  0x00 ] 
+   [   size   ] Number of data words to reserve.
+
+   [ checksum ]  -sum(all prev words)
+
+
+   

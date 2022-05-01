@@ -4,15 +4,15 @@
  * @brief Handles code generation for virtual B machine.
  * ******************************************************************** */
 
-#define OBJ_DATA        10
-#define OBJ_BSS         11
-#define OBJ_CODE        12
+#define OBJ_DATA        0x11
+#define OBJ_BSS         0x12
+#define OBJ_CODE        0x10
 
 word gen_initialize(char* filename);
 word gen_finish();
 
 word gen_startDataBlock(char* name);
-word gen_addDataWord(word d);
+word gen_addDataWord(word d, word reloc);
 word gen_endDataBlock();
 
 word gen_startBSSBlock();
@@ -20,7 +20,7 @@ word gen_addBSSWord(word n);
 word gen_endBSSBlock();
 
 word gen_startCodeBlock();
-word gen_addCodeWord(word d, word reloc);
+word gen_addCodeWord(word c, word reloc);
 word gen_endCodeBlock();
 
 word gen_if_start();

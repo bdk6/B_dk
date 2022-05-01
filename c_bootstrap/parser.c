@@ -266,7 +266,7 @@ word statement()
         /* put into table, on stack */
         strcpy(localText, getText());
         tok = scan();
-        if(tok == TOK_INT || tok == TOK_STRING || tok == TOK_IDENT)  /* initializer? */
+        if(tok == TOK_INT || tok == TOK_STRING || tok == TOK_IDENT) /* initializer? */
         {
           sym_insert(localText, FLAG_AUTO, dataCounter++);
           /* TODO initialize and write data block to .obj */
@@ -824,11 +824,11 @@ word factor() /* rvalue */
       /* paramlist */
       /* ... */
       /* TODO */
-      printf("\tCALL\t%04d\n",val);
+      gen_function_call(val); // printf("\tCALL\t%04d\n",val);
     }
     else   /* just a number */
     {
-      gen_function_call(val); //printf("\tPSHI\t%04d\n", val);
+      gen_literal(val); //printf("\tPSHI\t%04d\n", val);
     }
     
     break;

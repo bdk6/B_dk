@@ -1,18 +1,24 @@
 
 
-all:	bc
+all:	bc bi
 
+# b preprocessor
 bpp:
 
+# b linker
 bl:
 
 
+# b compiler
 bc:	 parser.o scanner.o  symtable.o codegen.o #blib.o system.o
 	gcc -o bc parser.o scanner.o  symtable.o codegen.o #blib.o system.o
 
+# b assembler
 ba:
 
-
+# b interpreter
+bi:	interp.c interp.h
+	gcc -o bi interp.c
 
 #system.o:	system.c system.h definitions.h
 #	gcc -c system.c
@@ -33,7 +39,7 @@ codegen.o:	codegen.c codegen.h definitions.h
 	gcc -c codegen.c
 
 clean:
-	rm *.o bc
+	rm -f *.o bc bi
 
 
 

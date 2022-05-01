@@ -10,12 +10,34 @@
 #include "codegen.h"
 #include "interp.h"
 
-word genDataCount;
-word genBSSCount;
-word genCodeCount;
 
-word codeBuffer[2048];
-word codeReloc[128];   /* One bit per code word */
+/* ***********************************************************************
+ * The dataBuffer holds literal data.  For an extrn definition, it will 
+ * be the only buffer used.  During a function definition, there will 
+ * be code and (local) literal data so both the code and data buffers 
+ * will be used.  In-function literal data isn't named so the data 
+ * values will be put into the code block.  References to this local 
+ * data will be data-segment relative.  The relocation points will 
+ * point to the code word that needs to be relocated, but the relocation 
+ * will be data-segment relative instead of code-segment relative.
+ * Every extrn definition gets it's own block.  Even a single variable.
+ *   simpleVar;                   gets a bss block 
+ *   vector[5] 2, 3, 5, 7, 9;     gets a data block 
+ *   aFunction() { return(0); }   gets a code block 
+ * A function definition can produce all three types of blocks:
+ *   Code
+ *   Data        auto localVec[] 1, 2, 3;
+ *   BSS   ???   (Now? or when we extend to static locals?)
+ * ******************************************************************** */
+
+word codeBuffer[2048]; /* buffer for machine code */
+word codeReloc[128];   /* list of code relative addresses to relocate */
+word dataBuffer[2048]; /* Buffer for literal data. */
+word dataReloc[128];   /* Relocation table for data */
+word genCodeCount;     /* Code offset counter */
+word genDataCount;     /* Data offset counter */
+word genBSSCount;      /* BSS offset counter */
+
 
 FILE* objfile;
 
@@ -47,11 +69,6 @@ word writeWord(word wrd)
   return rtn;
 }
 
-/* ***********************************************************************
- * @fn gen_initialize
- * @brief Get everything ready for code generation
- * return 0 on success
- * ******************************************************************** */
 
 
 /* ***********************************************************************
@@ -97,99 +114,6 @@ word gen_finish()
   return rtn;
 }
 
-
-/* ***********************************************************************
- * @fn gen_startDataBlock
- * @brief Start writing an initialized data block.
- * return Offset of this data item/block
- * ******************************************************************** */
-/* ***********************************************************************
- * Data Block
- *   0  ID
- *   1  OFFSET
- *   2  NAME, 0
- *   N  WORDS
- *   N  DATA
- *   M  RELOC
- * ******************************************************************** */
-word gen_startDataBlock(char* name)
-{
-  word rtn = 0;
-  rtn = writeWord(OBJ_DATA);          /* Mark it as a data block */
-  rtn |= writeWord(genDataCount);     /* Set the offset */
-  /* TODO Name? */
-
-
-  return rtn;
-}
-
-/* ***********************************************************************
- * @fn gen_addDataWord
- * @brief Add a word to the initialized data block
- * @param[in] d Data word to add.
- * return Offset in block of this item.
- * ******************************************************************** */
-word gen_addDataWord(word d)
-{
-  word rtn = 0;
-
-
-  return rtn;
-}
-
-/* ***********************************************************************
- * @fn gen_endDataBlock
- * @brief Finalize writing this block of data.
- * return 
- * ******************************************************************** */
-word gen_endDataBlock()
-{
-  word rtn = 0;
-
-
-  return rtn;
-}
-
-/* ***********************************************************************
- * @fn gen_startBSSClock
- * @brief Start writing an unitialized data block.
- * return 
- * ******************************************************************** */
-word gen_startBSSBlock()
-{
-  word rtn = 0;
-
-
-  return rtn;
-}
-
-/* ***********************************************************************
- * @fn gen_addBSSWords
- * @brief Add a number of words (n) to the BSS block
- * @param[in] 
- * return Offset of this data item.
- * ******************************************************************** */
-word gen_addBSSWord(word n)
-{
-  word rtn = 0;
-  rtn = genBSSCount;
-  genBSSCount += n;
-
-  return rtn;
-}
-
-/* ***********************************************************************
- * @fn gen_endBSSBlock
- * @brief Finalize writing this block of data.
- * return 0 on success
- * ******************************************************************** */
-word gen_endBSSBlock()
-{
-  word rtn;
-
-  return rtn;
-}
-
 /* ***********************************************************************
  * @fn gen_startCodeBlock
  * @brief Start building a code block.
@@ -200,9 +124,13 @@ word gen_startCodeBlock()
   word rtn = 0;
   word i;
   genCodeCount = 0;
+  genDataCount = 0;
+  genBSSCount = 0;
+  
   for(i = 0; i < 128; i++)
   {
     codeReloc[i] = 0;      /* Clear relocation bits */
+    dataReloc[i] = 0;      
   }
   
   return rtn;
@@ -245,6 +173,108 @@ word gen_endCodeBlock()
   // write code
   // write reloc
   // write extrns
+
+  return rtn;
+}
+
+/* ***********************************************************************
+ * @fn gen_startDataBlock
+ * @brief Start writing an initialized data block.
+ * return Offset of this data item/block
+ * ******************************************************************** */
+/* ***********************************************************************
+ * Data Block
+ *   0  ID
+ *   1  OFFSET
+ *   2  NAME, 0
+ *   N  WORDS
+ *   N  DATA
+ *   M  RELOC
+ * ******************************************************************** */
+word gen_startDataBlock(char* name)
+{
+  word rtn = 0;
+  rtn = writeWord(OBJ_DATA);          /* Mark it as a data block */
+  rtn |= writeWord(genDataCount);     /* Set the offset */
+  /* TODO Name? */
+
+
+  return rtn;
+}
+
+/* ***********************************************************************
+ * @fn gen_addDataWord
+ * @brief Add a word to the initialized data block
+ * @param[in] d Data word to add.
+ * @param[in] reloc If non-zero make this word relocatable.
+ * return Offset in block of this item.
+ * ******************************************************************** */
+word gen_addDataWord(word d, word reloc)
+{
+  word rtn = 0;
+  word rwrd;
+  word rbit;
+  rtn = genDataCount;
+  dataBuffer[genDataCount] = d;
+  if(reloc)
+  {
+    rwrd = genDataCount >> 4;
+    rbit = genDataCount & 15;
+    dataReloc[rwrd] |= (1 << rbit);  /* set reloc bit for this word */
+  }
+  genDataCount++;
+
+  return rtn;
+}
+
+/* ***********************************************************************
+ * @fn gen_endDataBlock
+ * @brief Finalize writing this block of data.
+ * return 
+ * ******************************************************************** */
+word gen_endDataBlock()
+{
+  word rtn = 0;
+
+  return rtn;
+}
+
+/* ***********************************************************************
+ * @fn gen_startBSSClock
+ * @brief Start writing an unitialized data block.
+ * return 
+ * ******************************************************************** */
+word gen_startBSSBlock()
+{
+  word rtn = 0;
+
+
+  return rtn;
+}
+
+/* ***********************************************************************
+ * @fn gen_addBSSWords
+ * @brief Add a number of words (n) to the BSS block
+ * @param[in] 
+ * return Offset of this data item.
+ * ******************************************************************** */
+word gen_addBSSWord(word n)
+{
+  word rtn = 0;
+  rtn = genBSSCount;
+  genBSSCount += n;
+
+  return rtn;
+}
+
+/* ***********************************************************************
+ * @fn gen_endBSSBlock
+ * @brief Finalize writing this block of data.
+ * return 0 on success
+ * ******************************************************************** */
+word gen_endBSSBlock()
+{
+  word rtn;
 
   return rtn;
 }
