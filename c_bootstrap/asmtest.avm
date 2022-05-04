@@ -1,0 +1,35 @@
+label1  org     256
+        nop
+        add
+        sub
+
+label2  mul
+        div
+        mod
+        and
+        or
+        xor
+        cpl
+        neg
+        not
+        BR label2
+        BSR label1
+
+THISISALABELTOOITISREALLYLONG
+        brz THISISALABELTOOITIISREALLYLONG
+        brnz label1
+        ret
+        fetch
+        store
+        pshi
+        pop
+        dup
+        drop
+
+label3  setsp
+label4  getsp
+        setpp
+        GETPP
+        SETFP
+        GETFP
+        

@@ -29,38 +29,51 @@
 typedef enum RPN_OP
 {
   RPN_NOP        = 0,   // No operatiorn
-  RPN_ADD,              // Add top two stack entries
-  RPN_SUB,              // Subtract top two stack entries
-  RPN_MUL,              // Multiply top two stack entries
-  RPN_DIV,              // Divide top two stack entries
-  RPN_MOD,              // Divide, return remainder
-  RPN_AND,              // AND top two stack entries
-  RPN_OR,               // OR top two stack entries
-  RPN_XOR,              // XOR top two stack entries
+  RPN_ADD        = 1,   // Add top two stack entries
+  RPN_SUB        = 2,   // Subtract top two stack entries
+  RPN_MUL        = 3,   // Multiply top two stack entries
+  RPN_DIV        = 4,   // Divide top two stack entries
+  RPN_MOD        = 5,   // Divide, return remainder
+  RPN_AND        = 6,   // AND top two stack entries
+  RPN_OR         = 7,   // OR top two stack entries
+  RPN_XOR        = 8,   // XOR top two stack entries
 
-  RPN_CPL,              // One's complement top stack entry
-  RPN_NEG,              // Two's complement top stack entry
-  RPN_NOT,              // 1 if TOS = 0, 0 otherwise
+  RPN_CPL        = 16,  // One's complement top stack entry
+  RPN_NEG        = 17,  // Two's complement top stack entry
+  RPN_NOT        = 18,  // 1 if TOS = 0, 0 otherwise
   
 
 
-  RPN_BR,               // Branch to following address
-  RPN_BSR,              // Branch to Subroutine at addr
-  RPN_BRZ,              // Branch if TOS is zero
-  RPN_BRNZ,             // Branch if TOS is not zero
-  RPN_FETCH,            // Push value addressed by TOS
-  RPN_STORE,            // Store value in NOS to address in TOS
-  RPN_PSHI,             // Push immediate value onto stack
-  RPN_POP,              // Pop TOS
-  RPN_DUP,              // Duplicate value on TOS
+  RPN_BR         = 32,  // Branch to following address
+  RPN_BSR        = 33,  // Branch to Subroutine at addr
+  RPN_BRZ        = 34,  // Branch if TOS is zero
+  RPN_BRNZ       = 35,  // Branch if TOS is not zero
+  RPN_RET        = 36,  // Return from subroutine
+  
+  RPN_FETCH      = 48,  // Push value addressed by TOS
+  RPN_STORE      = 49,  // Store value in NOS to address in TOS
+  RPN_PSHI       = 50,  // Push immediate value onto stack
+  RPN_POP        = 51,  // Pop TOS
+  RPN_DUP        = 52,  // Duplicate value on TOS
+  RPN_DROP       = 53,  // Remove top entry from stack
 
-  RPN_SETSP,            // Set stack pointer
+  RPN_SETSP      = 64,  // Set stack pointer
+  RPN_GETSP      = 65,  // Get stack pointer onto stack
+  RPN_SETPP      = 66,  // Set Parameter Pointer
+  RPN_GETPP      = 67,  // Get parameter pointer onto stack
+  RPN_SETFP      = 68,  // Set Frame Pointer
+  RPN_GETFP      = 69,  // Get Frame Pointer onto stack
+  
 
-  RPN_OUTCH,            // Write TOS as ASCII char to console
-  RPN_INCH,             // Get ASCII char from console to TOS
+  RPN_OUTCH      = 250, // Write TOS as ASCII char to console
+  RPN_INCH       = 251, // Get ASCII char from console to TOS
+  RPN_TON        = 252, // Turn on tracing
+  RPN_TOFF       = 253, // Turn off tracing
 
-  RPN_HALT,             // Halt execution
+  RPN_HALT       = 255, // Halt execution
 
 
 } RPN_OP_t;
 
+
+extern char* RPN_strings[];

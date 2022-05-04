@@ -139,17 +139,17 @@ word gen_startCodeBlock()
 /* ***********************************************************************
  * @fn gen_addCodeWord
  * @brief Add a word to the current code block.
- * @param[in] d Word to add to code.
+ * @param[in] c Word to add to code.
  * @param[in] reloc If non-zero, make this word relocatable.
  * return  Offset of this word.
  * ******************************************************************** */
-word gen_addCodeWord(word d, word reloc)
+word gen_addCodeWord(word c, word reloc)
 {
   word rtn = 0;
   word rwrd;
   word rbit;
   rtn = genCodeCount;
-  codeBuffer[genCodeCount] = d;
+  codeBuffer[genCodeCount] = c;
   if(reloc)
   {
     rwrd = genCodeCount >> 4;
@@ -288,10 +288,8 @@ word gen_if_start()
 {
   word rtn;
 
-  codeBuffer[genCodeCount++] = RPN_BRZ;
-  rtn = genCodeCount;               /* return the location to update */
-  codeBuffer[genCodeCount++] = 0;   /* branch address */
-  /* TODO Add address to relocation table */
+  gen_addCodeWord(RPN_BRZ, 0);
+  rtn = gen_addCodeWord(0, 1);   /* dummy value, but relocatable */
 
   printf("\tBRZ\tIF_ELSE\n");
   
@@ -308,13 +306,9 @@ word gen_if_else(word start_addr)
 {
   word rtn = 0;
   
-  codeBuffer[genCodeCount++] = RPN_BR; /* Jump over the ELSE statement */
-  rtn = genCodeCount;              /* This address needs to be updated */
-  codeBuffer[genCodeCount++] = 0;  /* BRanch address to exit IF */
-  /* update the IF jmp address */
-  codeBuffer[start_addr] = genCodeCount; /* IF comes here on FALSE */
-
-  /* TODO  Add address to relocation table */
+  gen_addCodeWord(RPN_BR, 0);
+  rtn = gen_addCodeWord(0, 1);    /* Dummy value but relocatable */
+  codeBuffer[start_addr] = genCodeCount; /* Update IF false branch */
 
   printf("\tBR\tIF_END\n");
   printf("IF_ELSE\n");
@@ -413,11 +407,11 @@ word gen_while_start()
 word gen_while_exp()
 {
   word rtn = 0;
+
+  gen_addCodeWord(RPN_BRZ, 0); /* jump to exit if zero */
+  rtn = gen_addCodeWord(0,1);  /* relocatable dummy address */
+
   printf("\tBRZ\tWH_END\n");
-  
-  codeBuffer[genCodeCount++] = RPN_BRZ;
-  rtn = genCodeCount; /* location of address to update at end */
-  codeBuffer[genCodeCount++] = 0;
 
   return rtn;
 }
@@ -425,18 +419,20 @@ word gen_while_exp()
 /* ***********************************************************************
  * @fn gen_while_end
  * @brief Code to branch back to start and location to exit.
+ * @param[in] start_add The address to jump back to.
+ * @param[in] exp_addr The address to back-patch for exit.
  * return 
  * ******************************************************************** */
 word gen_while_end(word start_add, word exp_addr)
 {
   word rtn = 0;
+
+  gen_addCodeWord(RPN_BR, 0);    /* jump back to top of while */
+  gen_addCodeWord(start_add, 1);
+  codeBuffer[exp_addr] = genCodeCount; /* update branch to end of while */
+  
   printf("\tBR\tWH_ST\n");
   printf("WH_END\n");
-
-  codeBuffer[genCodeCount++] = RPN_BR;
-  codeBuffer[genCodeCount++] = start_add;
-  /* counter points to next instruction */
-  codeBuffer[exp_addr] = genCodeCount;  /* update branch to end */
 
   return rtn;
 }
@@ -449,6 +445,13 @@ word gen_while_end(word start_add, word exp_addr)
 word gen_function_call(word addr)
 {
   word rtn = 0;
+
+  gen_addCodeWord(RPN_BSR, 0);
+  gen_addCodeWord(0,0);      /* Dummy to be filled by linker */
+  // TODO add to external references
+  // TODO pop parameters (SP = PP?)
+
+  
   printf("\tBSR\t%04X\n", addr);
   // TODO write reloc
 

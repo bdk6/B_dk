@@ -5,22 +5,30 @@
 
 #include <stdio.h>
 #include "interp.h"
+#include "sim_common.h"
 
 #define MEM_SIZE         65536
 
+word trace = 1;
 
 word memory[65536];      // System RAM
 word PC;                 // Points to next instruction
 word IR;                 // Holds current instruction
 word SP;                 // Points to first empty spot
+word PP;                 // Parameter Pointer -- to first parameter
+word FP;                 // Frame Pointer -- to first auto
+
 word ERROR;              // Holds error code if there is one
 
 word dump()
 {
   word rtn = 0;
 
-  printf("PC:      %4X\n", PC);
+  printf("\n");
+  printf("PC:      %04X\t%04X:%s\n", PC, memory[PC], RPN_strings[memory[PC]]);
   printf("SP:      %4X\n", SP);
+  printf("PP:      %4X\n", PP);
+  printf("FP:      %4X\n", FP);
   printf("IR:      %4X\n", IR);
   printf("ERROR:   %4X\n", ERROR);
   printf("TOS:     %4x\n", memory[SP +1]);
@@ -79,6 +87,10 @@ word execute(void)
   case RPN_BR:
     PC = memory[PC];
     break;
+  case RPN_BSR:
+    FP = SP;            // Set frame pointer = stack pointer(ret addr)
+    memory[SP--] = PC;
+    PC = memory[PC];
   case RPN_BRZ:
     SP++;
     if(memory[SP] == 0)
@@ -101,6 +113,11 @@ word execute(void)
       PC++;
     }
     break;
+  case RPN_RET:
+    SP = FP;            /* RESET stack pointer to ret address */
+    PC = memory[SP++];  /* and jump to it */
+    break;
+    
   case RPN_FETCH:
     memory[SP + 1] = memory[memory[SP + 1]];
     break;
@@ -115,8 +132,10 @@ word execute(void)
     SP++;
     break;
   case RPN_DUP:
-    memory[SP] = memory[SP + 1];
-    SP--;
+    memory[SP--] = memory[SP + 1];
+    break;
+  case RPN_DROP:
+    SP++;
     break;
 
   case RPN_SETSP:
@@ -130,6 +149,12 @@ word execute(void)
   case RPN_INCH:
     memory[SP] = getchar();
     SP--;
+    break;
+  case RPN_TON:
+    trace = 1;
+    break;
+  case RPN_TOFF:
+    trace = 0;
     break;
     
   case RPN_HALT:
@@ -155,7 +180,9 @@ word run(word start)
   while(run)
   {
     IR = memory[PC++];     // fetch instruction
+    
     run = execute();       // execute instruction
+    if(trace) dump();
   }
   dump();
   
@@ -171,6 +198,8 @@ word clear(void)
   PC = 0;
   IR = 0;
   SP = 0;
+  PP = 0;
+  FP = 0;
   ERROR = 0;
 
   return 0;
