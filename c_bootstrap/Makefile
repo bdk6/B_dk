@@ -1,6 +1,6 @@
 
 
-all:	bc bi ba
+all:	bpp bl bc bi ba
 
 # b preprocessor
 bpp:
@@ -14,8 +14,8 @@ bc:	 parser.o scanner.o  symtable.o codegen.o #blib.o system.o
 	gcc -o bc parser.o scanner.o  symtable.o codegen.o #blib.o system.o
 
 # b assembler
-ba:	asm_sim.o
-	gcc -o ba asm_sim.o
+ba:	asm_sim.o asm_data.o 
+	gcc -o ba asm_sim.o asm_data.o
 
 # b interpreter
 bi:	interp.o interp.h sim_common.o sim_common.h
@@ -23,6 +23,9 @@ bi:	interp.o interp.h sim_common.o sim_common.h
 
 asm_sim.o:	asm_sim.c
 	gcc -c asm_sim.c
+
+asm_data.o:	asm_data.c asm_data.h
+	gcc -c asm_data.c
 
 interp.o:	interp.c interp.h
 	gcc -c interp.c

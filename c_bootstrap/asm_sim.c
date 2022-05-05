@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <stdint.h>
 #include "definitions.h"
+#include "asm_data.h"
 
 
 static char lineBuffer[256];
@@ -19,7 +20,7 @@ FILE* outfile;
 word symbols[256];
 char strings[8192];
 word nextSym = 0;
-word nextString = 0;
+word nextString = 1;
 
 word codeCounter;
 word dataCounter;
@@ -33,6 +34,8 @@ word finalize(void);
 word getLabel(void);
 word getOperation(void);
 word getOperand(void);
+word symFind(word idx);
+word symInsert(word idx, word value);
 
 int main(int argc, char** argv)
 {
@@ -42,6 +45,7 @@ int main(int argc, char** argv)
   if(initialize(argv[1]))
     {
       printf("Exiting...\n");
+      return(1);
     }
   //while(readLine() != 65535);
   printf("Starting pass 1 \n");
@@ -57,8 +61,6 @@ int main(int argc, char** argv)
   printf("Finalizing...\n");
   finalize();
   printf("Done.\n");
-
-
 
   return rtn;
 }
@@ -81,7 +83,7 @@ word initialize(char* filename)
         break;
       }
     }
-    strcpy(outFileName, ".bin");
+    strcat(outFileName, ".bin");
     infile = fopen(filename, "r");
     outfile = fopen(outFileName, "w");
 
@@ -94,7 +96,7 @@ word initialize(char* filename)
       strings[idx] = 0;
     }
     nextSym = 0;
-    nextString = 0;
+    nextString = 1; /* 0 index means empty */
 
     if(infile == NULL || outfile == NULL)
     {
@@ -120,6 +122,11 @@ word initialize(char* filename)
   return rtn;
 }
 
+/* ***********************************************************************
+ * @fn readLine
+ * @brief Reads a line of code from input file
+ * @return Number of chars read or 65535 on EOF 
+ * ******************************************************************** */
 word readLine(void)
 {
   word rtn;
@@ -161,11 +168,16 @@ word readLine(void)
   return rtn;
 }
 
-
+/* ***********************************************************************
+ * @fn pass1
+ * @brief Performs first pass (of two) of the assembly.
+ * @return 0 if successful, non-zero on errors.
+ * ******************************************************************** */
 word pass1(void)
 {
   word rtn = 0;
   word result = 0;
+  word labelIdx;
   
   codeCounter = 0;
   dataCounter = 0;
@@ -174,7 +186,7 @@ word pass1(void)
   do
   {
     result = readLine();
-    getLabel();
+    labelIdx = getLabel();  /* zero if no label */
     
   }while(result != 65535);
 
@@ -236,12 +248,47 @@ word getLabel(void)
 
 word getOperation(void)
 {
-  word rtn = 0;
+  word rtn = 65535;  // return if no operation found
+  word idx = 0;
+
+  // skip label
+  while(!isblank(lineBuffer[idx])) idx++;
+  // skip whitespace
+  while(isblank(lineBuffer[idx])) idx++;
+  
 
   return rtn;
 }
 
 word getOperand(void)
+{
+  word rtn = 0;
+
+  return rtn;
+}
+
+/* ***********************************************************************
+ * @fn symFind
+ * @brief Looks for a symbol in the symbol table
+ * @param[in] idx Index into string table of name to look up.
+ * @return Index of symbol in table or 65535 if not found.
+ * ******************************************************************** */
+word symFind(word idx)
+{
+  word rtn = 0;
+
+  return rtn;
+}
+
+/* ***********************************************************************
+ * @fn symInsert
+ * @brief Inserts a symbol into symbol table if not already there.
+ * @param[in] idx Index into string table of name to insert.
+ * @param[in] value The value to associate with the symbol.
+ * @return Index of symbol in table or 65535 if already there.
+ * ******************************************************************** */
+
+word symInsert(word idx, word value)
 {
   word rtn = 0;
 
