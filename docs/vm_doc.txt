@@ -1,0 +1,105 @@
+B_dk Virtual Machine Documentation
+wrc 20220505
+
+The B_dk Virtual Machine (BVM) is a pseudo-processor in the spirit of the
+Pascal P machine or Java bytecode.  It is a simulated processor intended
+to make compiling and running B programs as simple as possible.  The main
+intent is to be able to run B programs on a modern PC without having to
+generate native code for whatever machine it is (32 or 64 bit, Linux,
+Windows, Mac, x86, ARM, etc.)
+
+BVM is a "stack machine" or "zero address" processor.  In other words,
+most of the activity is on the pushdown stack instead of in registers or
+"normal" memory.  If you are a Forth programmer, or a user of classic HP
+calculators, this should be familiar.  I'll skip most of the theory and
+details here, but give a very brief overview.  It isn't intended to be
+very efficient in time or space, just simple to use.
+
+The current implementation is a 16 bit machine.  It could easily enough
+be extended to whatever size you want, but 16 bits matches my goals. It
+is 16 bits in the classic sense of 16 bit mini computers.  It has a 16
+bit word size and a 16 bit address size.  So it can address 2^16 (65536)
+words each of 16 bits.  Individual bytes are not directly addressable.
+Since my ultimate target is "retro" 8 bit processors with a 64 KB
+address space and 8 bit words, this is a good match.  Integers from
+-32768 to 32767 or from 0 to 65535 can be represented, or each word can
+hold two ASCII characters.
+
+The instruction set contains a lot of instructions for arithmetic and
+logic operations, as is typical of most processors.  But those instructions
+have no "address modes" or operands.  Here is an assembly language example:
+
+AVG_THREE                 ; expects three numbers on stack
+                 ADD      ; Adds top two, leaves result on stack
+                 ADD      ; Adds next number to partial result
+                 PSHI   3 ; Puts literal 3 on top of stack
+                 DIV      ; Divides sum by 3, leaves on stack.
+                 
+
+That short block of code expects three numbers on the top of the stack. It
+adds the top two, removing them from the stack, and places the result back
+on the top of the stack.  It then adds that partial result to the third
+number, removing both, and placing the full sum back on the stack.  It then
+"pushes immediate" (PSHI 3) the number 3 onto the stack.  DIV divides the
+number on top of the stack into the number that is next on stack, removes
+both, and leaves the quotient on the top of the stack.
+
+Stack machines are quite nifty and convenient, especially to make simple
+compilers.  There have been quite a few real computers built as stack
+machines over the years, such as the Burroughs 5500 series.
+
+BVM Registers:
+
+Most of the work is done on the stack, but we do need a few registers to make
+things convenient.  Here are the registers defined in BVM:
+
+       PC           Program Counter -- points to next instruction
+       SP           Stack Pointer -- Points to value on top of stack
+       PP           Parameter Pointer -- Points to parameters passed to funct
+       FP           Frame Pointer -- Points to function's local variables.
+
+BVM Instruction Set:
+    NOP         No operation
+    ADD         Add top two stack values, leaving sum on TOS (top of stack.)
+    SUB         Subtract TOS from NOS (next on stack) leaving difference.
+    MUL         Multiply top two stack values leaving product.
+    DIV         Divide TOS into NOS leaving quotient.
+    MOD         Divide TOS into NOS leaving remainder.
+    AND         Logically and top two stack values leaving result.
+    OR          Logically OR top two stack values leaving result.
+    XOR         Logically exclusive or top two stack values leaving result.
+    CPL         Take one's complement of TOS.
+    NEG         Take two's complement of TOS.
+    NOT         If TOS equals zero, leave 0xffff, else leave 0.
+*   BR   addr   Branch unconditionally to addr.
+*   BSR  addr   Branch to subroutine at addr, saving all regs.
+*   BRZ  addr   Branch to addr if TOS = zero.
+*   BNZ  addr   Branch to addr if TOS != zero.
+    RET         Return from subroutine.
+    FETCH       Get address from TOS and load word from address to TOS.
+    STORE       Get address from TOS and place word in NOS at address.
+*   PSHI num    Push num onto stack.
+    POP         Remove top entry from stack.
+    DUP         Duplicate top entry on stack.
+    DROP        Same as POP.
+    SETSP       Move TOS to SP.
+    GETSP       Copy SP to TOS.
+    SETPP       Move TOS to PP.
+    GETPP       Copy PP to TOS.
+    SETFP       Move TOS to FP.
+    GETFP       Copy FP to TOS.
+    OUTCH       Output least 8 bits of TOS to terminal.
+    INCH        Read byte from terminal to TOS.
+    HALT        Stop execution.
+
+
+
+Assembler:
+
+pseudo ops
+       EQU
+       SET
+       DW
+       ORG
+       DS
+       

@@ -22,7 +22,7 @@ char* opcodeStrings[] =
   "NEG",         // 17
   "NOT",         // 18
 
-   "BR",          // 32
+  "BR",          // 32
   "BSR",         // 33
   "BRZ",         // 34
   "BRNZ",        // 35
