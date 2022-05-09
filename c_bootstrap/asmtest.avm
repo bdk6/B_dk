@@ -3,6 +3,7 @@ label1  org     256
         add
         sub
 
+	org	$200 + 4
 label2  mul
         div
         mod
@@ -21,8 +22,10 @@ THISISALABELTOOITISREALLYLONG
         ret
         fetch
         store
-        pshi
+        pshi 7 + 3 << 2
         pop
+
+	org	4 + ($40 << 3) * 2
         dup
         drop
 
