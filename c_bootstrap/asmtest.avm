@@ -35,4 +35,14 @@ label4  getsp
         GETPP
         SETFP
         GETFP
-        
+label5	pshi	'AB'
+	dup
+	drop
+	dup
+	store
+	org	'CD'
+	pshi	'B'
+	org	'Z'
+strlab	dw	"This is a string", 99, $f5, 0
+label6	dup
+
