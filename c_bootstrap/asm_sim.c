@@ -29,12 +29,14 @@ word codeCounter;    // Current offset into code segment.
 word dataCounter;    // Current offset into data segement.
 word bssCounter;     // Current offset into bss segment.
 word* counter;       // Currently in use counter.
+word activeCounter;  // Code (1), Data (2), or BSS (3).
 
 word thisTok;        // Current token scanned
 word tokValue;       // Value of constant scanned
 word err;            // Error code
 
 
+word error(word errnum);
 word initialize(char* filename);
 word readLine(void);
 word pass1(void);
@@ -60,6 +62,7 @@ word shiftexp(void);
 word addexp(void);
 word mulexp(void);
 word factor(void);
+word writeWord(word wrd);
 
 
 int main(int argc, char** argv)
@@ -78,7 +81,7 @@ int main(int argc, char** argv)
   printf("Result is %d \n", result);
   if(!result)
   {
-    printf("Starting pass 2\n");
+    //printf("Starting pass 2\n");
     //result = pass2();
   }
   rtn = result;
@@ -86,6 +89,20 @@ int main(int argc, char** argv)
   printf("Finalizing...\n");
   finalize();
   printf("Done.\n");
+
+  return rtn;
+}
+
+/* ***********************************************************************
+ * @fn error
+ * @brief Gives appropriate error message and updates err log.
+ * @param[in] errnum The number of the error type.
+ * @return ???
+ * ******************************************************************** */
+word error(word errnum)
+{
+  word rtn = 0;
+  printf("Error number %d on line %d \n", errnum, lineNumber);
 
   return rtn;
 }
@@ -156,6 +173,8 @@ word readLine(void)
   idx = 0;
   operationIndex = 0;
   operandIndex = 0;
+
+  for(int i = 0; i < 128; i++) lineBuffer[i] = 0;
   
   while( (ch = getc(infile)) != EOF)
   {
@@ -211,23 +230,46 @@ word pass1(void)
   word opcodeSize;
   word symidx;
   word operandLength;
+  word operandValue;
   
   codeCounter = 0;
   dataCounter = 0;
   bssCounter = 0;
   counter = &codeCounter;
+  activeCounter = 1;     // indicate code counter in use
   pass = 1;
   lineNumber = 1;
 
   do
   {
     result = readLine();
+    //printf("%04d %s \n", lineNumber, & lineBuffer);
     labelLength = getLabel();  /* zero if no label */
     operationStart = getOperation();
+    // TODO assign labelValue AFTER segment assignments
     labelValue = *counter; //codeCounter; // tentative
     if(operationStart != 0)
     {
-      if(strcasecmp(&lineBuffer[operationStart], "EQU") == 0)
+      if(strcasecmp(&lineBuffer[operationStart], "CODE") == 0)
+      {
+        counter = &codeCounter;
+        activeCounter = 1;
+        labelValue = *counter;
+      }
+      else if(strcasecmp(&lineBuffer[operationStart], "DATA") == 0)
+      {
+        counter = &dataCounter;
+        activeCounter = 2;
+        labelValue = *counter;
+      }
+      else if(strcasecmp(&lineBuffer[operationStart], "BSS") == 0)
+      {
+        counter = &bssCounter;
+        activeCounter = 3;
+        labelValue = *counter;
+      }
+        
+      else if(strcasecmp(&lineBuffer[operationStart], "EQU") == 0)
       {
         // set labelValue to exp
         // TODO check if already in table
@@ -243,8 +285,8 @@ word pass1(void)
       }
       else if(strcasecmp(&lineBuffer[operationStart], "ORG") == 0)
       {
-        // set codeCounter and labelValue to exp
-        //printf("Setting code counter to ");
+        // set counter and labelValue to exp
+        //printf("Setting counter to ");
         thisTok  = scan();
         *counter = expression(); // codeCounter = expression();
         printf("%d \n", *counter); // codeCounter);
@@ -255,11 +297,6 @@ word pass1(void)
       {
         labelValue = *counter; // codeCounter;
         operandLength = 0;
-        // get length
-        //thisTok = scan();
-        //printf("OP is DW and thisTok is %d \n", thisTok);
-        // for each string add length
-        // for each expression add 1
         while(1)
         {
           thisTok = scan();
@@ -268,8 +305,7 @@ word pass1(void)
           if(thisTok == TOK_STRING)
           {
             // get length and add
-            // TODO words, not bytes
-            operandLength += strlen(&strings[nextString]);
+            operandLength += (strlen(&strings[nextString]) + 1)/2;
             //printf("String is %s at %d and length %d \n", &strings[nextString],
             //       nextString, operandLength);
             thisTok = scan();
@@ -280,10 +316,155 @@ word pass1(void)
             expression();
             operandLength += 1;
           }
-          
           if(thisTok != ',')
           {
-            printf("no comma %d \n", thisTok);
+            break;
+          }
+        }
+        printf("DW operand length: %d \n", operandLength);
+        *counter += operandLength; //codeCounter += operandLength;
+      }
+      else if(strcasecmp(&lineBuffer[operationStart], "DS") == 0)
+      {
+        operandLength = expression();
+        *counter += operandLength; //codeCounter += operandLength;
+      }
+      else
+      {
+        // find operation and length
+        printf("Op start: %d\n", operationStart);
+        opcodeIndex = findOpcode(&lineBuffer[operationStart]);
+        if(opcodeIndex != 65535)
+        {
+          opcodeValue = opcodeValues[opcodeIndex];
+          opcodeSize = opcodeSizes[opcodeIndex];
+          writeWord(opcodeValue);
+          if(opcodeSize == 2)
+          {
+            thisTok = scan();
+            operandValue = expression();
+            printf("Operand Value: %d \n", operandValue);
+            writeWord(operandValue);
+          }
+          
+        }
+        //printf("opcode index:%d value: %d size: %d \n",
+        //       opcodeIndex, opcodeValue, opcodeSize);
+        *counter += opcodeSize; // codeCounter += opcodeSize;
+      }
+    }
+    if(labelLength != 0)
+    {
+      symidx = symFind(lineBuffer);
+      symInsert(symidx, lineBuffer, labelValue);
+    }
+    //printf("Line index %d \n", lineIndex);
+    
+  }while(result != 65535);
+
+  return rtn;
+}
+
+/* ***********************************************************************
+ * @fn pass2
+ * @brief Performs second pass (of two) of the assembly.
+ * @return 0 if successful, non-zero on errors.
+ * ******************************************************************** */
+word pass2(void)
+{
+  word rtn = 0;
+  word result = 0;
+  word labelLength;
+  word labelValue;
+  word operationStart;
+  word opcodeIndex;
+  word opcodeValue;
+  word opcodeSize;
+  word symidx;
+  word operandLength;
+  
+  codeCounter = 0;
+  dataCounter = 0;
+  bssCounter = 0;
+  counter = &codeCounter;
+  activeCounter = 1;     // indicate code counter in use
+  pass = 2;
+  lineNumber = 1;
+
+  do
+  {
+    result = readLine();
+    labelLength = getLabel();  /* zero if no label */
+    operationStart = getOperation();
+    // TODO assign labelValue AFTER segment assignments
+    labelValue = *counter; //codeCounter; // tentative
+    if(operationStart != 0)
+    {
+      if(strcasecmp(&lineBuffer[operationStart], "CODE") == 0)
+      {
+        counter = &codeCounter;
+        activeCounter = 1;
+      }
+      else if(strcasecmp(&lineBuffer[operationStart], "DATA") == 0)
+      {
+        counter = &dataCounter;
+        activeCounter = 2;
+      }
+      else if(strcasecmp(&lineBuffer[operationStart], "BSS") == 0)
+      {
+        counter = &bssCounter;
+        activeCounter = 3;
+      }
+        
+      else if(strcasecmp(&lineBuffer[operationStart], "EQU") == 0)
+      {
+        // set labelValue to exp
+        // TODO check if already in table
+        thisTok = scan();
+        labelValue = expression();
+      }
+      else if(strcasecmp(&lineBuffer[operationStart], "SET") == 0)
+      {
+        // set labelValue to exp
+        // TODO check if already in table
+        thisTok = scan();
+        labelValue = expression();
+      }
+      else if(strcasecmp(&lineBuffer[operationStart], "ORG") == 0)
+      {
+        // set counter and labelValue to exp
+        //printf("Setting counter to ");
+        thisTok  = scan();
+        *counter = expression(); // codeCounter = expression();
+        printf("%d \n", *counter); // codeCounter);
+        labelValue = *counter; // codeCounter;
+        
+      }
+      else if(strcasecmp(&lineBuffer[operationStart], "DW") == 0)
+      {
+        labelValue = *counter; // codeCounter;
+        operandLength = 0;
+        while(1)
+        {
+          thisTok = scan();
+          //printf("in DW loop thisTok is %d \n", thisTok);
+          
+          if(thisTok == TOK_STRING)
+          {
+            // get length and add
+            operandLength += (strlen(&strings[nextString]) + 1)/2;
+            //printf("String is %s at %d and length %d \n", &strings[nextString],
+            //       nextString, operandLength);
+            thisTok = scan();
+          }
+          else
+          {
+            //printf("DW exp thisTok %d \n", thisTok);
+            expression();
+            operandLength += 1;
+          }
+          if(thisTok != ',')
+          {
             break;
           }
         }
@@ -318,32 +499,6 @@ word pass1(void)
     
   }while(result != 65535);
 
-  return rtn;
-}
-
-/* ***********************************************************************
- * @fn pass2
- * @brief Performs second pass (of two) of the assembly.
- * @return 0 if successful, non-zero on errors.
- * ******************************************************************** */
-word pass2(void)
-{
-  word rtn = 0;
-  word result = 0;
-  
-  codeCounter = 0;
-  dataCounter = 0;
-  bssCounter = 0;
-  counter = &codeCounter;
-  pass = 2;
-  rewind(infile);
-  lineNumber = 1;
-
-  do
-  {
-    result = readLine();
-  }while(result != 65535);
-  
 
   return rtn;
 }
@@ -1061,6 +1216,22 @@ word factor(void)
   }
 
   printf("factor: %d \n", rtn);
+  return rtn;
+}
+
+
+word writeWord(word wrd)
+{
+  word rtn = 0;
+  word hi;
+  word lo;
+
+  hi = (wrd >> 8) & 0xff;
+  lo = wrd & 0xff;
+  putc(hi, outfile);
+  putc(lo, outfile);
+  printf("Writing: %02x %02x \n", hi, lo);
+
   return rtn;
 }
 
