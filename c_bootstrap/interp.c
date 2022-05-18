@@ -117,6 +117,14 @@ word execute(void)
     SP = FP;            /* RESET stack pointer to ret address */
     PC = memory[SP++];  /* and jump to it */
     break;
+
+  case RPN_CALL:
+    // push fp
+    // fp = sp
+    // push pc
+    // pc = imm
+
+    break;
     
   case RPN_FETCH:
     memory[SP + 1] = memory[memory[SP + 1]];
@@ -140,6 +148,18 @@ word execute(void)
 
   case RPN_SETSP:
     SP = memory[PC++];
+    break;
+
+  case RPN_SPI:
+    SP = memory[PC++];
+    break;
+
+  case RPN_PPI:
+    PP = memory[PC++];
+    break;
+
+  case RPN_FPI:
+    FP = memory[PC++];
     break;
 
   case RPN_OUTCH:

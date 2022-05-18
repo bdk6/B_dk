@@ -49,6 +49,7 @@ typedef enum RPN_OP
   RPN_BRZ        = 34,  // Branch if TOS is zero
   RPN_BRNZ       = 35,  // Branch if TOS is not zero
   RPN_RET        = 36,  // Return from subroutine
+  RPN_CALL       = 37,  // B function call
   
   RPN_FETCH      = 48,  // Push value addressed by TOS
   RPN_STORE      = 49,  // Store value in NOS to address in TOS
@@ -59,10 +60,13 @@ typedef enum RPN_OP
 
   RPN_SETSP      = 64,  // Set stack pointer
   RPN_GETSP      = 65,  // Get stack pointer onto stack
-  RPN_SETPP      = 66,  // Set Parameter Pointer
+  RPN_SETPP      = 66,  // Set Parameter Pointer from stack
   RPN_GETPP      = 67,  // Get parameter pointer onto stack
-  RPN_SETFP      = 68,  // Set Frame Pointer
+  RPN_SETFP      = 68,  // Set Frame Pointer from stack
   RPN_GETFP      = 69,  // Get Frame Pointer onto stack
+  RPN_SPI        = 70,  // Stack Pointer Immediate
+  RPN_PPI        = 71,  // Parameter Pointer Immediate
+  RPN_FPI        = 72,  // Frame Pointer Immediate
   
 
   RPN_OUTCH      = 250, // Write TOS as ASCII char to console

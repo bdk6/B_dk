@@ -45,4 +45,12 @@ label5	pshi	'AB'
 	org	'Z'
 strlab	dw	"This is a string", 99, $f5, 0
 label6	dup
+	pshi	equ1
+	pshi    label3
+equ1	equ	$1234
+set1	set	$3456
+set2	set	$4567
+equ1	equ	$5678
+set1	set	$6789
+
 

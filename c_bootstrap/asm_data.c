@@ -27,6 +27,7 @@ char* opcodeStrings[] =
   "BRZ",         // 34
   "BRNZ",        // 35
   "RET",         // 36
+  "CALL",        // 37
 
   "FETCH",       // 48
   "STORE",       // 49
@@ -41,6 +42,9 @@ char* opcodeStrings[] =
   "GETPP",       // 67
   "SETFP",       // 68
   "GETFP",       // 69
+  "SPI",         // 70
+  "PPI",         // 71
+  "FPI",         // 72
 
   "OUTCH",       // 250
   "INCH",        // 251
@@ -73,6 +77,7 @@ word opcodeValues[] =
   34,   // "BRZ",         // 34     2
   35,   // "BRNZ",        // 35     2
   36,   // "RET",         // 36     1/2 (pop parameters?)
+  37,   // "CALL",        // 37     2
 
   48,   // "FETCH",       // 48     1
   49,   // "STORE",       // 49     1
@@ -87,6 +92,9 @@ word opcodeValues[] =
   67,   // "GETPP",       // 67     1     PP -> TOS
   68,   // "SETFP",       // 68     ?
   69,   // "GETFP",       // 69     1     FP -> TOS
+  70,   // "SPI",         // 70     2     IMM -> SP
+  71,   // "PPI",         // 71     2     IMM -> PP
+  72,   // "FPI",         // 72     2     IMM -> FP
 
   250,  // "OUTCH",       // 250    1
   251,  // "INCH",        // 251    1
@@ -119,6 +127,7 @@ word opcodeSizes[] =
   2,    // "BRZ",         // 34     2
   2,    // "BRNZ",        // 35     2
   2,    // "RET",         // 36     1/2 (pop parameters?)
+  2,    // "CALL",        // 37     2
 
   1,    // "FETCH",       // 48     1
   1,    // "STORE",       // 49     1
@@ -133,6 +142,9 @@ word opcodeSizes[] =
   1,    // "GETPP",       // 67     1     PP -> TOS
   0,    // "SETFP",       // 68     ?
   1,    // "GETFP",       // 69     1     FP -> TOS
+  2,    // "SPI",         // 70     2
+  2,    // "PPI",         // 71     2
+  2,    // "FPI",         // 72     2
 
   1,    // "OUTCH",       // 250    1
   1,    // "INCH",        // 251    1

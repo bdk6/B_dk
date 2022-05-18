@@ -39,6 +39,7 @@ word err;            // Error code
 word error(word errnum);
 word initialize(char* filename);
 word readLine(void);
+word dopass(void);
 word pass1(void);
 word pass2(void);
 word finalize(void);
@@ -46,6 +47,7 @@ word getLabel(void);
 word getOperation(void);
 word getOperand(void);
 word symFind(char* name);
+word symIsDefined(char* name);
 word symInsert(word idx, char* name, word value);
 word findOpcode(char* str);
 word nextChar(void);
@@ -63,7 +65,7 @@ word addexp(void);
 word mulexp(void);
 word factor(void);
 word writeWord(word wrd);
-
+word writeString(char* str);
 
 int main(int argc, char** argv)
 {
@@ -77,12 +79,17 @@ int main(int argc, char** argv)
     }
   //while(readLine() != 65535);
   printf("Starting pass 1 \n");
-  result = pass1();
+  pass = 1;
+  result = dopass(); // pass1();
   printf("Result is %d \n", result);
   if(!result)
   {
     //printf("Starting pass 2\n");
     //result = pass2();
+    pass = 2;
+    rewind(infile);
+    printf("**************   Pass 2 *************************\n");
+    result = dopass();
   }
   rtn = result;
   printf("Pass 2 result is %d \n", result);
@@ -214,11 +221,11 @@ word readLine(void)
 }
 
 /* ***********************************************************************
- * @fn pass1
- * @brief Performs first pass (of two) of the assembly.
+ * @fn dopass 
+ * @brief Performs a pass of the assembly //first pass (of two) of the assembly.
  * @return 0 if successful, non-zero on errors.
  * ******************************************************************** */
-word pass1(void)
+word dopass(void) // pass1(void)
 {
   word rtn = 0;
   word result = 0;
@@ -237,7 +244,6 @@ word pass1(void)
   bssCounter = 0;
   counter = &codeCounter;
   activeCounter = 1;     // indicate code counter in use
-  pass = 1;
   lineNumber = 1;
 
   do
@@ -275,6 +281,13 @@ word pass1(void)
         // TODO check if already in table
         thisTok = scan();
         labelValue = expression();
+        /* already defined? */
+        symidx = symFind(lineBuffer);
+        if(symbols[symidx] != 0)  /* Is it defined? */
+        {
+          error(0); // TODO fix this
+          printf("EQU redefined on line %d \n", lineNumber);
+        }
       }
       else if(strcasecmp(&lineBuffer[operationStart], "SET") == 0)
       {
@@ -286,70 +299,81 @@ word pass1(void)
       else if(strcasecmp(&lineBuffer[operationStart], "ORG") == 0)
       {
         // set counter and labelValue to exp
-        //printf("Setting counter to ");
         thisTok  = scan();
-        *counter = expression(); // codeCounter = expression();
-        printf("%d \n", *counter); // codeCounter);
-        labelValue = *counter; // codeCounter;
-        
+        *counter = expression();
+        labelValue = *counter; 
       }
       else if(strcasecmp(&lineBuffer[operationStart], "DW") == 0)
       {
-        labelValue = *counter; // codeCounter;
+        labelValue = *counter; 
         operandLength = 0;
         while(1)
         {
           thisTok = scan();
-          //printf("in DW loop thisTok is %d \n", thisTok);
-          
           if(thisTok == TOK_STRING)
           {
-            // get length and add
-            operandLength += (strlen(&strings[nextString]) + 1)/2;
-            //printf("String is %s at %d and length %d \n", &strings[nextString],
-            //       nextString, operandLength);
+            if(pass == 1)
+            {
+              operandLength += (strlen(&strings[nextString]) + 1)/2;
+            }
+            else
+            {
+              operandLength += writeString(&strings[nextString]);
+            }
+              
             thisTok = scan();
           }
-          else
+          else  /* integer expression */
           {
-            //printf("DW exp thisTok %d \n", thisTok);
-            expression();
+            result = expression();
             operandLength += 1;
+            if(pass == 2)
+            {
+              writeWord(result);
+            }
           }
           if(thisTok != ',')
           {
             break;
           }
         }
-        printf("DW operand length: %d \n", operandLength);
+        //printf("DW operand length: %d \n", operandLength);
         *counter += operandLength; //codeCounter += operandLength;
       }
       else if(strcasecmp(&lineBuffer[operationStart], "DS") == 0)
       {
         operandLength = expression();
         *counter += operandLength; //codeCounter += operandLength;
+        if(pass == 2)
+        {
+          for(int i = 0; i < operandLength; i++)
+          {
+            writeWord(0);
+          }
+        }
       }
       else
       {
         // find operation and length
-        printf("Op start: %d\n", operationStart);
         opcodeIndex = findOpcode(&lineBuffer[operationStart]);
         if(opcodeIndex != 65535)
         {
           opcodeValue = opcodeValues[opcodeIndex];
           opcodeSize = opcodeSizes[opcodeIndex];
-          writeWord(opcodeValue);
           if(opcodeSize == 2)
           {
             thisTok = scan();
             operandValue = expression();
-            printf("Operand Value: %d \n", operandValue);
-            writeWord(operandValue);
           }
-          
+          if(pass == 2)
+          {
+            writeWord(opcodeValue);
+            if(opcodeSize == 2)
+            {
+              writeWord(operandValue);
+            }
+          } 
         }
-        //printf("opcode index:%d value: %d size: %d \n",
-        //       opcodeIndex, opcodeValue, opcodeSize);
         *counter += opcodeSize; // codeCounter += opcodeSize;
       }
     }
@@ -358,150 +382,13 @@ word pass1(void)
       symidx = symFind(lineBuffer);
       symInsert(symidx, lineBuffer, labelValue);
     }
-    //printf("Line index %d \n", lineIndex);
     
   }while(result != 65535);
 
   return rtn;
 }
 
-/* ***********************************************************************
- * @fn pass2
- * @brief Performs second pass (of two) of the assembly.
- * @return 0 if successful, non-zero on errors.
- * ******************************************************************** */
-word pass2(void)
-{
-  word rtn = 0;
-  word result = 0;
-  word labelLength;
-  word labelValue;
-  word operationStart;
-  word opcodeIndex;
-  word opcodeValue;
-  word opcodeSize;
-  word symidx;
-  word operandLength;
-  
-  codeCounter = 0;
-  dataCounter = 0;
-  bssCounter = 0;
-  counter = &codeCounter;
-  activeCounter = 1;     // indicate code counter in use
-  pass = 2;
-  lineNumber = 1;
 
-  do
-  {
-    result = readLine();
-    labelLength = getLabel();  /* zero if no label */
-    operationStart = getOperation();
-    // TODO assign labelValue AFTER segment assignments
-    labelValue = *counter; //codeCounter; // tentative
-    if(operationStart != 0)
-    {
-      if(strcasecmp(&lineBuffer[operationStart], "CODE") == 0)
-      {
-        counter = &codeCounter;
-        activeCounter = 1;
-      }
-      else if(strcasecmp(&lineBuffer[operationStart], "DATA") == 0)
-      {
-        counter = &dataCounter;
-        activeCounter = 2;
-      }
-      else if(strcasecmp(&lineBuffer[operationStart], "BSS") == 0)
-      {
-        counter = &bssCounter;
-        activeCounter = 3;
-      }
-        
-      else if(strcasecmp(&lineBuffer[operationStart], "EQU") == 0)
-      {
-        // set labelValue to exp
-        // TODO check if already in table
-        thisTok = scan();
-        labelValue = expression();
-      }
-      else if(strcasecmp(&lineBuffer[operationStart], "SET") == 0)
-      {
-        // set labelValue to exp
-        // TODO check if already in table
-        thisTok = scan();
-        labelValue = expression();
-      }
-      else if(strcasecmp(&lineBuffer[operationStart], "ORG") == 0)
-      {
-        // set counter and labelValue to exp
-        //printf("Setting counter to ");
-        thisTok  = scan();
-        *counter = expression(); // codeCounter = expression();
-        printf("%d \n", *counter); // codeCounter);
-        labelValue = *counter; // codeCounter;
-        
-      }
-      else if(strcasecmp(&lineBuffer[operationStart], "DW") == 0)
-      {
-        labelValue = *counter; // codeCounter;
-        operandLength = 0;
-        while(1)
-        {
-          thisTok = scan();
-          //printf("in DW loop thisTok is %d \n", thisTok);
-          
-          if(thisTok == TOK_STRING)
-          {
-            // get length and add
-            operandLength += (strlen(&strings[nextString]) + 1)/2;
-            //printf("String is %s at %d and length %d \n", &strings[nextString],
-            //       nextString, operandLength);
-            thisTok = scan();
-          }
-          else
-          {
-            //printf("DW exp thisTok %d \n", thisTok);
-            expression();
-            operandLength += 1;
-          }
-          if(thisTok != ',')
-          {
-            break;
-          }
-        }
-        printf("DW operand length: %d \n", operandLength);
-        *counter += operandLength; //codeCounter += operandLength;
-      }
-      else if(strcasecmp(&lineBuffer[operationStart], "DS") == 0)
-      {
-        operandLength = expression();
-        *counter += operandLength; //codeCounter += operandLength;
-      }
-      else
-      {
-        // find operation and length
-        opcodeIndex = findOpcode(&lineBuffer[operationStart]);
-        if(opcodeIndex != 65535)
-        {
-          opcodeValue = opcodeValues[opcodeIndex];
-          opcodeSize = opcodeSizes[opcodeIndex];
-        }
-        //printf("opcode index:%d value: %d size: %d \n",
-        //       opcodeIndex, opcodeValue, opcodeSize);
-        *counter += opcodeSize; // codeCounter += opcodeSize;
-      }
-    }
-    if(labelLength != 0)
-    {
-      symidx = symFind(lineBuffer);
-      symInsert(symidx, lineBuffer, labelValue);
-    }
-    //printf("Line index %d \n", lineIndex);
-    
-  }while(result != 65535);
-
-
-  return rtn;
-}
 
 /* ***********************************************************************
  * @fn finalize
@@ -552,7 +439,7 @@ word getLabel(void)
     }
   }
   lineBuffer[idx] = 0;
-  printf("Label is <<<%s>>> \n", lineBuffer);
+  //printf("Label is <<<%s>>> \n", lineBuffer);
   rtn = idx;
   lineIndex = idx + 1;
 
@@ -606,16 +493,30 @@ word symFind(char* name)
   while(symbols[idx] != 0) // If it 0, this entry is empty
   {
     result = (word) strcmp(name, &strings[symbols[idx]]);
-    //printf("result: %d\n", result);
     if(result == 0) // match
     {
       break;
     }
     idx += 2;
   }
-
-  //printf("idx: %d pointer: %d content: %d\n",idx,symbols[idx],symbols[idx+1]);
   return idx;
+}
+
+/* ***********************************************************************
+ * @fn symIsDefined
+ * @brief Check if a symbol is defined.
+ * @brief name The name to look up.
+ * @return Zero if not defined, one if defined.
+ * ******************************************************************** */
+word symIsDefined(char* name)
+{
+  word rtn;
+  rtn = symFind(name);
+  if(symbols[rtn] != 0)  /* convert non-zero to 1 */
+  {
+    rtn = 1;
+  }
+  return rtn;
 }
 
 /* ***********************************************************************
@@ -781,11 +682,12 @@ word scan(void)
     strptr = nextString;
     while(isIdStart(ch) || isdigit(ch))
     {
-      strings[nextString] = ch;
-      nextString++;
+      strings[strptr] = ch; //strings[nextString] = ch;
+      strptr++; //nextString++;
       ch = nextChar();
     }
     unNextChar();  // put back non ident char
+    strings[strptr] = 0;
   }
   else if(ch == '$')                            /* Hex integer */
   {
@@ -1168,7 +1070,9 @@ word mulexp(void)
 word factor(void)
 {
   word rtn = 0;
-  printf("factor first tok %d \n", thisTok);
+  word sym;
+  
+  //printf("factor first tok %d \n", thisTok);
 
   if(thisTok == TOK_NUM)
   {
@@ -1178,7 +1082,14 @@ word factor(void)
   else if(thisTok == TOK_IDENT)
   {
     // TODO look up value
-    rtn = 0xDEAD;
+    //rtn = 0xDEAD;
+    if(!symIsDefined(&strings[nextString]))
+    {
+      printf("Symbol not defined: %d: %s\n", lineNumber, &strings[nextString]);
+    }
+    sym = symFind(&strings[nextString]);
+    rtn = symbols[sym + 1];
+    //printf("Factor: sym value is %04x \n", rtn);
     thisTok = scan();
   }
   else if(thisTok == '(')
@@ -1215,11 +1126,16 @@ word factor(void)
     }
   }
 
-  printf("factor: %d \n", rtn);
+  //printf("factor: %d \n", rtn);
   return rtn;
 }
 
-
+/* ***********************************************************************
+ * @fn writeWord
+ * @brief Write a word to the output file big endian.
+ * @param[in] wrd The word to write.
+ * @return ???
+ * ******************************************************************** */
 word writeWord(word wrd)
 {
   word rtn = 0;
@@ -1235,3 +1151,30 @@ word writeWord(word wrd)
   return rtn;
 }
 
+/* ***********************************************************************
+ * @fn writeString
+ * @brief Write a string of chars to output file two to a word.
+ * @param[in] str Pointer to the string to write.
+ * @return Number of words written.
+ * ******************************************************************** */
+word writeString(char* str)
+{
+  word cnt = 0;
+  word ch;
+
+  while((ch = *str) != 0)
+  {
+    putc(ch, outfile);
+    str++;
+    cnt++;
+    printf("write ch: %02x\n", ch);
+  }
+  if( (cnt & 0x01) != 0)
+  {
+    putc(0, outfile); // Finish off the word
+    cnt++;
+  }
+  cnt /= 2;  // bytes to words
+  
+  return cnt;
+}
