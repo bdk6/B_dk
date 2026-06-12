@@ -1,0 +1,494 @@
+The syntax given in this section defines all the legal constructions in B without specifying the association rules. These are given later along with the semantic description of each construction.
+program ::=
+	{definition}0
+
+definition ::=
+	name {[ {constant}01 ]}01 {ival {, ival}0}01 ;
+	name ( {name {, name}0}01 ) statement
+
+ival ::=
+	constant
+	name
+
+statement ::=
+	auto name {constant}01 {, name {constant}01}0 ;  statement
+	extrn name {, name}0 ; statement
+	name : statement
+	case constant : statement
+	{ {statement}0 }
+	if ( rvalue ) statement {else statement}01
+	while ( rvalue ) statement
+	switch rvalue statement
+	goto rvalue ;
+	return {( rvalue )}01 ;
+	{rvalue}01 ;
+
+rvalue ::=
+	( rvalue )
+	lvalue
+	constant
+	lvalue assign rvalue
+	inc-dec lvalue
+	lvalue inc-dec
+	unary rvalue
+	& lvalue
+	rvalue binary rvalue
+	rvalue ? rvalue : rvalue
+	rvalue ( {rvalue {, rvalue}0 }01 )
+
+assign ::=
+	= {binary}01
+
+inc-dec ::=
+	++
+	--
+	
+unary ::=
+	-
+	!
+
+binary ::=
+	|
+	&
+	==
+	!=
+	<
+	<=
+	>
+	>=
+	<<
+	>>
+	-
+	+
+	%
+	*
+	/
+
+lvalue ::=
+	name
+	* rvalue
+	rvalue [ rvalue ]
+
+constant ::=
+	{digit}1
+	' {char}12 '
+	" {char}0 "
+
+name ::=
+	alpha {alpha-digit}07
+
+alpha-digit ::=
+	alpha
+	digit
+
+
+program = { definition } .
+
+definition = name [ "[" [ constant "]" [ ival { "," ival} ] ";" 
+           | name "(" [ name { "," name } ] ")" statement .
+                
+ival = constant | name .
+
+statement = "auto" name [ constant ] { "," name [ constant] } ";" statement
+                  | "extrn" name { "," name } ";" statement
+                  | name ":" statement
+                  | "case" constant ":" statement
+                  | "{" {statement} "}"
+                  | "if" "(" rvalue ")" statement [ "else" statement]
+                  | "while" "(" rvalue ")" statement
+                  | "switch" rvalue statement
+                  | "goto" rvalue ";"
+                  | "return" [ "(" rvalue ")" ] ";"
+                  | [rvalue] ";"
+
+rvalue = "(" rvalue ")"
+            | lvalue 
+            | constant
+            | lvalue assign rvalue
+            | inc-dec lvalue
+            | lvalue inc-dec
+            | unary rvalue
+            | "&" lvalue
+            | rvalue binary rvalue
+            | rvalue "?" rvalue ":" rvalue
+            | rvalue "(" [ rvalue { "," rvalue } ] ")" .
+
+assign = "=" [binary] .
+
+inc-dec = "++" | "--" .
+
+unary = "-" | "!" .
+
+binary = "|" | "&" | "==" | "!=" | "<" | "<=" | ">" | ">=" | "<<"
+       | ">>" | "-" | "+" | "%" | "*" | "/" .
+
+lvalue = name | "*" rvalue | rvalue "[" rvalue "]" .
+
+constant = digit {digit} | "'" char [char] "'" | """ {char} """ .
+
+name = alpha {alpha} .
+
+alpha-digit = alpha | digit .
+
+
+
+keywords:
+   auto
+   extrn
+   if
+   else
+   while
+   break
+   return
+   goto
+   switch
+   case
+   
+   
+
+
+Will Cooke
+
+Embedded Software Engineer
+
+Agriculture Division
++1-931-249-6521 Direct
+Will_Cooke@trimble.com
+
+
+----------------------------------------------------------------
+//program = { definition } .
+int parse_program(void)
+{
+  int rtn = 0;
+  while(not eof)
+  {
+    parse_definition();
+  }
+  return rtn;
+}
+
+//definition = name [ "[" [ constant "]" [ ival { "," ival} ] ";" 
+//           | name "(" [ name { "," name } ] ")" statement .
+int parse_definition(void)
+{
+  int rtn = 0;
+  parse_name();
+  if(token == '(')
+  {
+    // do function
+  }
+  else if(token == '[')
+  {
+    // do array
+  }
+  else
+  {
+    // do simple variable
+  }
+  return rtn;
+}
+
+  
+ 
+// ival = constant | name .
+int parse_ival(void)
+{
+  int rtn = 0;
+  if(token == ident)
+  {
+    // do name
+  }
+  else if(token == integer)
+  {
+    // do constant
+  }
+  else
+  {
+    // error
+  }
+  return rtn;
+}
+
+//statement = "auto" name [constant] { "," name [ constant] } ";" statement
+//          | "extrn" name { "," name } ";" statement
+//          | name ":" statement
+//          | "case" constant ":" statement
+//          | "{" {statement} "}"
+//          | "if" "(" rvalue ")" statement [ "else" statement]
+//          | "while" "(" rvalue ")" statement
+//          | "switch" rvalue statement
+//          | "goto" rvalue ";"
+//          | "return" [ "(" rvalue ")" ] ";"
+//          | [rvalue] ";"
+
+int parse_statement(void)
+{
+  int rtn = 0;
+  switch(token)
+  {
+    case tok_auto:
+    case tok_extrn:
+    case tok_name:
+    case tok_case:
+    case '{':
+    case tok_if:
+    case tok_while:
+    case tok_switch:
+    case tok_goto:
+    case tok_return:
+    case ?? rvalue:  // TODO
+    default:
+  }
+  return rtn;
+}
+
+
+//rvalue = "(" rvalue ")"
+//       | lvalue 
+//       | constant
+//       | lvalue assign rvalue
+//       | inc-dec lvalue
+//       | lvalue inc-dec
+//       | unary rvalue
+//       | "&" lvalue
+//       | rvalue binary rvalue
+//       | rvalue "?" rvalue ":" rvalue
+//       | rvalue "(" [ rvalue { "," rvalue } ] ")" .
+
+// rvalue = lvalue [inc-dec | assign rvalue]
+//        | inc-dec lvalue
+//        | '&' lvalue
+//        | constant
+
+//        | unary rvalue
+//        | rvalue binary rvalue
+//        | rvalue '?' rvalue ':' rvalue
+//        | rvalue '(' [ rvalue { ',' rvalue } ] ')'
+//        | '(' rvalue ')' .
+//        
+int parse_rvalue(void)
+{
+  int rtn = 0;
+  switch(token)
+  {
+    case '(':       // rvalue ')'
+    case ??:        // lvalue
+    case ??:        // constant
+    case ??:        // lvalue assign rvalue
+    case inc-dec:   // lvalue
+    case ??:        // lvalue inc-dec
+    case unary:     // rvalue
+    case '&':       // lvalue
+    case ??:        // rvalue binary rvalue
+    case ??:        // rvalue '?' rvalue ':' rvalue
+    case ??:        // rvalue '(' ... ')'
+    default:
+  }
+  returnt rtn;
+}
+
+
+
+
+// assign = "=" [binary] . (right to left)
+int parse_assign(void)
+{
+  int rtn = 0;
+  switch(token)
+  {
+    case '=':
+    case '=|':
+    case '=&':
+    case '===': ??
+    case '=!=': ??
+    case '=<':
+    case '=<=':
+    case '=>':
+    case '=>=':
+    case '=<<':
+    case '=>>':
+    case '=-':
+    case '=+':
+    case '=%':
+    case '=*':
+    case '=/':
+    default:
+  }
+  return rtn;
+}
+
+// inc-dec = "++" | "--" .
+
+// unary = "-" | "!" .  right to left
+
+// binary = "|" | "&" | "==" | "!=" | "<" | "<=" | ">" | ">="
+//        | "<<" | ">>" | "-" | "+" | "%" | "*" | "/" .
+
+// lvalue = name | "*" rvalue | rvalue "[" rvalue "]" .
+
+// constant = digit {digit} | "'" char [char] "'" | """ {char} """ .
+
+// name = alpha {alpha-digit} .
+
+// alpha-digit = alpha | digit .
+
+// alpha = 'a' - 'z' | 'A' - 'Z' | '_' | '.' .
+
+// digit = '0' - '9'
+
+
+expression =
+assignexp = lvalue assignop expression    (right to left)
+conditionalexp = rvalue ?rvalue : rvalue  (right to left)
+orexp = andexp { orop andexp }
+andexp = equalityexp { andop equalityexp }
+equalityexp = relateexp { equalop relateexp }
+relatexp = shiftexp { relateop shiftexp }
+shiftexp =  addexp { shiftop addexp }
+addexp = term {addop term}.
+term = factor { mulop factor }.
+factor = constant |                       (unary bind right to left)
+
+
+TOKENS
+ident = letter { alnum }
+number
+string
+charconst
+"auto"
+"extrn"
+"case"
+"if"
+"else"
+"while"
+"switch"
+"goto"
+"return"
+
++
+-
+*
+/
+%
+
+&
+&& (add)
+|
+|| (add)
+^ (add)
+<<
+>>
+=
+==
+!=
+:
+?
+,
+(
+)
+{
+}
+[
+]
+++
+--
+<=
+>=
+!=
+~
+=+
+=-
+=*
+=/
+=%
+=|
+=&
+=^ (add)
+===
+=!=
+=<
+=>
+=<=
+=>=
+=<<
+=>>
+
+;
+
+
+letter = a..z A..Z _ bs (remove '.' and bs)
+alnum = letter | digit
+digit = 0..9
+
+
+Implementation Notes
+wrc 20220410
+Words are 16 bits
+  -- on 1802 stored high byte first (in even addresses)
+  -- There are 32768 words
+
+First character of char const in left-most (high) byte.
+Same for strings
+
+*e is ascii EOT (End of Transmission -- character 4)
+
+Segments:
+  Code
+  Data (initialized)
+  BSS  (uninitialized = 0)
+  Heap
+  Stack
+  
+r0 dma
+r1 ??
+r2 ??
+r3 PC
+
+   fn return val
+   top of stack
+   sp
+   localptr
+   paramptr
+   
+stack based:
+function call:
+   param pointer: --->  arg1   // we don't know how many!
+                        arg2
+                        arg ...
+                        arg n
+                        return address
+   local pointer: --->  auto1
+                        auto2
+                        auto...
+                        auton
+                        temp1
+                        temp2
+                        temp ...
+   stack pointer: --->  temp n
+
+   x = fn(a,b,c);
+   set param pointer to sp
+   push a
+   push b
+   push c
+   call fn
+   in fn():
+   set local ptr to sp
+   push auto1
+   push auto 2
+   ...
+   
+   
+                        
+if(exp) statement1 else statement2
+
+if:
+   expression
+   jz else
+   statement1
+   jmp endif
+else:
+   statement2
+endif:
+   

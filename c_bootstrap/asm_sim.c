@@ -285,8 +285,19 @@ word dopass(void) // pass1(void)
         symidx = symFind(lineBuffer);
         if(symbols[symidx] != 0)  /* Is it defined? */
         {
-          error(0); // TODO fix this
-          printf("EQU redefined on line %d \n", lineNumber);
+          if(pass == 1)
+          {
+            error(0); // Show redefined
+            printf("EQU redefined on line %d \n", lineNumber);
+          }
+          else
+            if(labelValue != symbols[symidx + 1]) // changed value?
+            {
+              error(1); // Show changed
+              printf("EQU value changed from pass 1 to pass 2 \n");
+            }
+          //error(0); // TODO fix this
+          //printf("EQU redefined on line %d \n", lineNumber);
         }
       }
       else if(strcasecmp(&lineBuffer[operationStart], "SET") == 0)

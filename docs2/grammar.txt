@@ -1,0 +1,1174 @@
+Grammar
+wrc 20240903
+
+Finding a complete grammar for B has been a challenge.  So I decided
+to take a different approach.
+
+The following C grammar is taken from K&R second edition, appendix A.
+It is then converted to a form more appropriate for recursive descent
+parsing, and then edited to a B grammar.
+
+A.7 Expressions
+
+primary-expression ::= identifier | constant | string | "(" expression ")"
+
+postfix-expression ::=
+  primary-expression
+  postfix-expression "[" expression "]"
+  postfix-expression "(" [argument-expression-list] ")"
+  postfix-expression"."identifier
+  postfix-expression"->"identifier
+  postfix-expression "++"
+  postfix-expression "--"
+
+argument-expression-list ::=
+  assignment-expression
+  assignment-expression-list "," assignment-expression
+  ^--- should be argument-expression?
+
+unary-expression ::=
+  postfix-expression
+  "++" unary-expression
+  "--" unary-expression
+  unary-operator cast-expression
+  sizeof unary-expression
+  sizeof "(" type-name ")"
+
+unary-operator ::= "&" | "*" | "+" | "-" | "~" | "!"
+
+cast-expression ::= unary-expression
+                  | "(" type-name ")" cast-expression
+
+multiplicative-expression ::=
+  cast-expression           *** added this, not in book
+  multiplicative-expression "*" cast-expression
+  multiplicative-expression "/" cast-expression
+  multiplicative-expression "%" cast-expression
+
+additive-expression ::=
+  multiplicative-expression
+  additive-expression "+" multiplicative-expression
+  additive-expression "=" multiplicative-expression
+
+shift-expression ::=
+  additive-expression
+  shift-expression "<<" additive-expression
+  shift-expression ">>" additive-expression
+
+relational-expression ::=
+  shift-expression
+  relational-expression "<" shift-expression
+  relational-expression ">" shift-expression
+  relational-expression "<=" shift-expression
+  relational-expression ">=" shift-expression
+
+equality-expression ::=
+  relational-expression
+  equality-expression "==" relational-expression
+  equality-expression "!=" relational-expression
+
+AND-expression ::=
+  equality-expression
+  AND-expression "&" equality-expression
+
+exclusive-or-expression ::=
+  AND-expression
+  exclusive-or-expression "^" AND-expression
+
+inclusive-or-expression ::=
+  exclusive-or-expression
+  inclusive-or-expression "|" exclusive-or-expression
+
+logical-AND-expression ::=
+  inclusive-or-expression
+  logical-AND-expression "&&" inclusive-or-expression
+
+logical-OR-expression ::=
+  logical-AND-expression
+  logical-OR-expression "||" logical-AND-expression
+
+conditional-expression ::=
+  logical-OR-expression
+  logical-OR-expression ? expression : conditional-expression
+
+assignment-expression ::=
+  conditional-expression
+  unary-expression assignment-operator assignment-expression
+
+assignment-operator ::= "=" | "*=" | "/=" | "+=" | "-="
+                      | "<<=" | ">>=" | "&=" | "^=" | "|="
+
+expression ::=
+  assignment-expression
+  expression "," assignment-expression
+  
+
+
+Full grammar from A.13
+
+translation-unit ::=
+  external-declaration
+  translation-unit external-declaration
+
+external-declaration ::=
+  function-definition
+  declaration
+
+function-definition ::=
+  declaration-specifiers(opt) declarator declaration-list(opt)
+     compound-statement
+
+declaration ::= declaration-specifiers init-declarator-list(opt) ";"
+
+declaration-list ::=
+  declaration
+  declaration-list declaration
+
+declaration-specifiers ::=
+  storage-class-specifier declaration-specifiers(opt)
+  type-specifier declaration-specifiers(opt)
+  type-qualifier declaration-specifiers(opt)
+
+storage-class-specifier ::= "auto" | "register" | "static"
+                          | "extern" | "typedef"
+
+type-specifier ::= "void" | "char" | "short" | "int" | long
+                 | "float" | "double" | "signed" | "unsigned"
+                 | struct-or-union-specifier | enum-specifier
+                 | typedef-name
+
+type-qualifier ::= "const" | "volatile"
+
+struct-or-union-specifier ::=
+  struct-or-union identifier(opt) "{" struct-declaration-list "}"
+  struct-or-union-identifier
+
+struct-or-union ::= "struct" | "union"
+
+struct-declaration-list ::=
+  struct-declaration
+  struct-declaration-list struct-declaration
+
+init-declarator-list ::=
+  init-declarator
+  init-declarator-list "," init-declarator
+
+init-declarator ::=
+  declarator
+  declarator "=" initializer
+
+struct-declaration ::= specifier-qualifier-list struct-declarator-list ";"
+
+specifier-qualifier-list :==
+  type-specifier specifier-qualifier-list(opt)
+  type-qualifier specifier-qualifier-list(opt)
+
+struct-declarator-list ::=
+  struct-declarator
+  struct-declarator-list "," struct-declarator
+
+enum-specifier ::=
+  "enum" identifier(opt) "{" enumerator-list "}"
+  "enum" identifier
+
+enumerator-list ::=
+  enumerator
+  enumerator-list "," enumerator
+
+enumerator ::=
+  identifier
+  identifier = constant-expression
+
+declarator ::= pointer(opt direct-declarator
+
+direct-declarator ::=
+  identifier
+  "(" dclarator ")"
+  direct-declarator "[" constant-expression(opt) "]"
+  direct-declarator "(" parameter-type-list ")"
+  direct-declarator "(" identifier-list(opt) ")"
+
+pointer ::=
+  "*" type-qualifier-list(opt)
+  "*" type-qualifier-list(opt) pointer
+
+type-qualifier-list ::=
+  type-qualifier
+  type-qualifier-list type-qualifier
+
+parameter-type-list ::=
+  parameter-list
+  parameter-list "," "..."
+
+parameter-list ::=
+  parameter-declaration
+  parameter-list "," parameter-declaration
+
+parameter-declaration ::=
+  declaration-specifiers declarator
+  declaration-specifiers abstract-declarator(opt)
+
+identifer-list ::=
+  identifier
+  identifier-list "," identifer
+
+initializer ::=
+  assignment-expression
+  "{" initializer-list "}"
+  "{" initializer-list "," "}"
+
+initializer-list ::=
+  initializer
+  initializer-list "," initializer
+
+type-name ::=
+  specifier-qualifier-list abstract-declarator(opt)
+
+abstract-declarator ::=
+  pointer
+  pointer(opt) direct-abstract-declarator
+
+direct-abstract-declarator ::=
+  "(" abstract-declarator ")"
+  direct-abstract-declarator(opt) "[" constant-expression(opt) "]"
+  direct-abstract-declarator(opt) "(" parameter-type-list(opt) ")"
+
+typedef-name ::= identifier
+
+statement ::=
+  labeled-statment
+  expression-statement
+  compound-statement
+  selection-statement
+  iteration-statement
+  jump-statement
+
+labeled-statement ::=
+  identifier ":" statement
+  "case" constant-expression ":" statement
+  "default" ":" statement
+
+expression-statement ::= expression(opt) ";"
+
+compound-statement ::= "{" declaration-list(opt) statement-list(opt) "}"
+
+statement-list ::=
+  statement
+  statement-list statement
+
+selection-statement ::=
+  "if" "(" expression ")" statement
+  "if" "(" expression ")" statement "else" statement
+  "switch" "(" expression ")" statement
+
+iteration-statement ::=
+  "while" "(" expression ")" statement
+  "do" statement "while" "(" expression ")"
+  "for" "(" expression(opt) ";" expression(opt) ":" expression(opt) statement
+
+jump-statement ::=
+  "goto" identifier ";"
+  "continue" ";"
+  "break" ";"
+  "return" expression(opt) ";"
+
+**********************************************************
+expression ::=
+  assignment-expression
+  expression "," assignment-expression
+
+assignment-expression ::=
+  conditional-expression
+  unary-expression assignment-operator assignment-expression
+
+assignment-operator ::= "=" | "*=" | "/=" | "%=" | "+=" | "-="
+                      | "<<=" | ">>=" | "&=" | "^=" | "|="
+
+conditional-expression ::=
+  logical-OR-expression
+  logical-OR-expression "?" expression ":" conditional-expression
+
+constant-expression ::=
+  conditional-expression
+
+logical-OR-expression ::=
+  logical-AND-expression
+  logical-OR-expression "||" logical-AND-expression
+
+logical-AND-expression ::=
+  inclusive-OR-expression
+  logical-AND-expression "&&" inclusive-OR-expression
+
+inclusive-OR-expression ::=
+  exclusive-OR-expression
+  inclusive-OR-expression "|" exclusive-OR-expression
+
+exclusive-OR-expression ::=
+  AND-expression
+  exclusive-OR-expression "^" AND-expression
+
+AND-expression ::=
+  equality-expression
+  AND-expression "&" equality-expression
+
+equality-expression ::=
+  relational-expression
+  equality-expression "==" relational-expression
+  equality-expression "!=" relational-expression
+
+relational-expression ::=
+  shift-expression
+  relational-expression "<" shift-expression
+  relational-expression ">" shift-expression
+  relational-expression "<=" shift-expression
+  relational-expression ">=" shift-expression
+
+shift-expression ::=
+  additive-expression
+  shift-expression "<<" additive-expression
+  shift-expression ">>" additive-expression
+
+additive-expression ::=
+  multiplicative-expression
+  additive-expression "+" multiplicative-expression
+  additive-expression "-" multiplicative-expression
+
+multiplicative-expression ::=
+  *****  wrong *****
+  cast-expression
+  multiplicative-expression "*" cast-expression
+  multiplicative-expression "/" cast-expression
+  multiplicative-expression "%" cast-expression
+
+cast-extpression ::=
+  unary-expression
+  "(" type-name ")" cast-expression
+
+unary-expression ::=
+  postfix-expression
+  "++" unary-expression
+  "--" unary-expression
+  unary-operator cast-expression
+  "sizeof" unary-expression
+  "sizeof" "(" type-name ")"
+
+unary-operator ::= "&" | "*" | "+" | "-" | "~" | "!"
+
+postfix-expression ::=
+  primary-expression
+  postfix-expression "[" expression "]"
+  postfix-expression "(" argument-expression-list(opt) ")"
+  postfix-expression "." identifier
+  postfix-expression "->" identifier
+  postfix-expression "++"
+  postfix-expression "--"
+
+primary-expression ::=
+  identifier
+  constant
+  string
+  "(" expression ")"
+
+argument-expression-list ::=
+  assignment-expression
+  argument--expression-list "," assignment-expression *** fixed
+
+constant ::=
+  integer-constant
+  character-constant
+  floating-constant
+  enumeration-constant
+
+**************** Preprocessor **********************************
+
+control-line ::=
+  "#" "define" identifier token-sequence
+  "#" "define" identifer"(" identifier "," ... "," identifer ")" token-sequence
+  "#" "undef" identifier
+  "#" "include" "<"filename">"
+  "#" "include" "\""filename"\""
+  "#" "line" constant "\""filename"\""
+  "#" "line" constant
+  "#" "error" token-sequence(opt)
+  "#" "pragma" token-sequence(opt)
+  "#"
+  preprocessor-conditional
+
+preprocessor-conditional ::=
+  if-line text elif-parts else-part(opt) "#" "endif"
+
+if-line ::=
+  "#" "if" constant-expression
+  "#" "ifdef" identifier
+  "#" "ifndef" identifier
+
+elif-parts ::=
+  elif-line text
+  elif-parts(opt)
+
+elif-line ::=
+  "#" "elif" constant-expression
+
+else-part ::=
+  else-line text
+
+else-line ::=
+  "#" "else"
+
+
+
+*******************************************************************
+***************   Converted Grammar  for recursive descent ********
+*******************************************************************
+
+
+translation-unit ::=
+  external-declaration { external-declaration }.
+
+external-declaration ::=
+  function-definition
+| declaration
+
+function-definition ::=
+  [declaration-specifiers] declarator [declaration-list]
+     compound-statement
+
+declaration ::= declaration-specifiers [init-declarator-list] ";"
+
+declaration-list ::=  declaration { declaration }
+
+declaration-specifiers ::=
+  storage-class-specifier [ declaration-specifiers ]
+| type-specifier [ declaration-specifiers ]
+| type-qualifier [ declaration-specifiers ]
+
+storage-class-specifier ::= "auto" | "register" | "static"
+                          | "extern" | "typedef"
+
+type-specifier ::= "void" | "char" | "short" | "int" | long
+                 | "float" | "double" | "signed" | "unsigned"
+                 | struct-or-union-specifier | enum-specifier
+                 | typedef-name
+
+type-qualifier ::= "const" | "volatile"
+
+struct-or-union-specifier ::=
+  [ struct-or-union identifier ] "{" struct-declaration-list "}"
+| struct-or-union-identifier
+
+struct-or-union ::= "struct" | "union"
+
+struct-declaration-list ::=
+  struct-declaration { struct-declaration ].
+
+init-declarator-list ::=
+  init-declarator { "," init-declarator }.
+
+init-declarator ::=
+  declarator [ "=" initializer ].
+
+struct-declaration ::= specifier-qualifier-list struct-declarator-list ";".
+
+specifier-qualifier-list :==
+  type-specifier [ specifier-qualifier-list ].
+  type-qualifier [ specifier-qualifier-list ].
+
+struct-declarator-list ::=
+  struct-declarator { "," struct-declarator }.
+
+enum-specifier ::=
+  "enum" ( identifier |  "{" enumerator-list "}" ).
+
+enumerator-list ::=
+  enumerator { "," enumerator }.
+
+enumerator ::=
+  identifier [ "=" constant-expression ].
+
+declarator ::= [ pointer ] direct-declarator.
+
+direct-declarator ::=
+  identifier
+| "(" declarator ")"
+| direct-declarator "[" [ constant-expression ] "]"
+| direct-declarator "(" parameter-type-list ")"
+| direct-declarator "(" [ identifier-list ] ")".
+
+pointer ::=
+  "*" [ type-qualifier-list ] [ pointer ]. **** check this
+
+type-qualifier-list ::=
+  type-qualifier { type-qualifier }.
+
+parameter-type-list ::=  parameter-list [ "," "..." ].
+
+parameter-list ::=  parameter-declaration { "," parameter-declaration }.
+
+parameter-declaration ::=
+  declaration-specifiers declarator
+| declaration-specifiers [ abstract-declarator ].   *** check this
+
+identifer-list ::=
+  identifier { "," identifier }.
+
+initializer ::=
+  assignment-expression
+| "{" initializer-list [ "," ] "}".
+
+initializer-list ::=
+  initializer { "," initializer }.
+
+type-name ::= specifier-qualifier-list [ abstract-declarator ].
+
+abstract-declarator ::=
+  pointer
+| [ pointer ] direct-abstract-declarator
+
+direct-abstract-declarator ::=
+  "(" abstract-declarator ")"
+| [ direct-abstract-declarator ] "[" constant-expression(opt) "]"
+| [ direct-abstract-declarator ] "(" parameter-type-list(opt) ")".
+
+typedef-name ::= identifier.
+
+statement ::=
+| labeled-statment
+| expression-statement
+| compound-statement
+| selection-statement
+| iteration-statement
+| jump-statement.
+
+labeled-statement ::=
+| identifier ":" statement
+| "case" constant-expression ":" statement
+| "default" ":" statement.
+
+expression-statement ::= [ expression ] ";".
+
+compound-statement ::= "{" [ declaration-list ] [ statement-list ] "}".
+
+statement-list ::=  statement { statement }.
+
+selection-statement ::=
+  "if" "(" expression ")" statement [ "else" statement ]
+| "switch" "(" expression ")" statement.
+
+iteration-statement ::=
+  "while" "(" expression ")" statement
+| "do" statement "while" "(" expression ")" ";"
+| "for" "(" [ expression ] ";" [ expression ] ";" [ expression ] ")" statement.
+
+jump-statement ::=
+  "goto" identifier ";"
+| "continue" ";"
+| "break" ";"
+| "return" expression(opt) ";".
+
+**********************************************************
+expression ::=
+  assignment-expression { "," assignment-expression }.
+
+assignment-expression ::=
+  conditional-expression
+| unary-expression assignment-operator assignment-expression.
+
+assignment-operator ::= "=" | "*=" | "/=" | "%=" | "+=" | "-="
+                      | "<<=" | ">>=" | "&=" | "^=" | "|=" .
+
+conditional-expression ::=              **** check
+  logical-OR-expression [ "?" expression ":" conditional-expression ] .
+
+constant-expression ::=  conditional-expression .
+
+logical-OR-expression ::=
+  logical-AND-expression { "||" logical-AND-expression } .
+
+logical-AND-expression ::=
+  inclusive-OR-expression { "&&" inclusive-OR-expression } .
+
+inclusive-OR-expression ::=
+  exclusive-OR-expression { "|" exclusive-OR-expression } .
+
+exclusive-OR-expression ::=
+  AND-expression { "^" AND-expression } .
+
+AND-expression ::=
+  equality-expression { "&" equality-expression } .
+
+equality-expression ::=
+  relational-expression { equality-operator relational-expression } .
+
+equality-operator ::= "==" | "!=" .
+
+relational-expression ::=
+  shift-expression { relational-operator shift-expression } .
+
+relational-operator ::= "<" | ">" | "<=" | ">=" .
+
+shift-expression ::=
+  additive-expression { shift-operator additive-expression } .
+
+shift-operator ::= "<<" | ">>" .
+
+additive-expression ::=
+  multiplicative-expression { additive-operator multiplicative-expression } .
+
+additive-operator ::= "+" | "-" .
+
+multiplicative-expression ::=
+  *****  wrong *****
+  cast-expression { multipicative-operator cast-expression } .
+
+multiplicative-operator ::= "*" | "/" | "%" .
+
+cast-extpression ::=
+  unary-expression
+  "(" type-name ")" cast-expression
+  
+*********   Check this ****************
+  { "(" type-name ")" } unary-expression .
+
+
+
+unary-expression ::=
+  postfix-expression
+| "++" unary-expression
+| "--" unary-expression
+| unary-operator cast-expression
+| "sizeof" unary-expression
+| "sizeof" "(" type-name ")" .
+
+unary-operator ::= "&" | "*" | "+" | "-" | "~" | "!" .
+
+postfix-expression ::=
+  primary-expression
+  postfix-expression "[" expression "]"
+  postfix-expression "(" argument-expression-list(opt) ")"
+  postfix-expression "." identifier
+  postfix-expression "->" identifier
+  postfix-expression "++"
+  postfix-expression "--"
+**** Check this *****
+  primary-expression { postfix-operation }.
+
+postfix-operation ::=
+  "[" expression "]"
+| "(" [ argument-expression-list ] ")"
+| "." identifier
+| "->" identifier
+| "++"
+| "--"
+
+
+primary-expression ::=
+  identifier
+  constant
+  string
+  "(" expression ")"
+
+argument-expression-list ::=
+  assignment-expression { "," assignment-epression } .
+
+constant ::=
+  integer-constant
+  character-constant
+  floating-constant
+  enumeration-constant
+
+************************    B grammar ver 1.0 *********************
+************************    20240906          *********************
+
+
+translation-unit ::=
+  external-declaration { external-declaration }.
+
+external-declaration ::=
+  function-definition
+| declaration
+
+function-definition ::=
+  [declaration-specifiers] declarator [declaration-list]
+     compound-statement
+
+declaration ::= declaration-specifiers [init-declarator-list] ";"
+
+declaration-list ::=  declaration { declaration }
+
+declaration-specifiers ::=
+  storage-class-specifier [ declaration-specifiers ]
+// extension | type-qualifier [ declaration-specifiers ]
+
+storage-class-specifier ::= "auto" | "extern" // extension | static ...
+
+
+// extension type-qualifier ::= "const" | "volatile"
+
+init-declarator-list ::=
+  init-declarator { "," init-declarator }.
+
+init-declarator ::=
+  declarator [ "=" initializer ].
+
+specifier-qualifier-list :==
+  type-specifier [ specifier-qualifier-list ].
+  type-qualifier [ specifier-qualifier-list ].
+
+// ext enum-specifier ::= "enum" ( identifier |  "{" enumerator-list "}" ).
+
+// ext enumerator-list ::=  enumerator { "," enumerator }.
+
+// ext enumerator ::= identifier [ "=" constant-expression ].
+
+declarator ::= [ pointer ] direct-declarator.
+
+direct-declarator ::=
+  identifier
+| "(" declarator ")"
+| direct-declarator "[" [ constant-expression ] "]"
+| direct-declarator "(" [ identifier-list ] ")".
+
+pointer ::=
+  "*" [ type-qualifier-list ] [ pointer ]. **** check this
+
+type-qualifier-list ::= type-qualifier { type-qualifier }.
+
+parameter-list ::=  parameter-declaration { "," parameter-declaration }.
+
+parameter-declaration ::=
+  declaration-specifiers declarator
+| declaration-specifiers [ abstract-declarator ].   *** check this
+
+identifer-list ::=
+  identifier { "," identifier }.
+
+initializer ::=
+  assignment-expression
+| "{" initializer-list [ "," ] "}".
+
+initializer-list ::=
+  initializer { "," initializer }.
+
+abstract-declarator ::=
+  pointer
+| [ pointer ] direct-abstract-declarator
+
+direct-abstract-declarator ::=
+  "(" abstract-declarator ")"
+| [ direct-abstract-declarator ] "[" constant-expression(opt) "]"
+| [ direct-abstract-declarator ] "(" parameter-type-list(opt) ")".
+
+statement ::=
+| labeled-statment
+| expression-statement
+| compound-statement
+| selection-statement
+| iteration-statement
+| jump-statement.
+
+labeled-statement ::=
+| identifier ":" statement
+| "case" constant-expression ":" statement
+| "default" ":" statement.
+
+expression-statement ::= [ expression ] ";".
+
+compound-statement ::= "{" [ declaration-list ] [ statement-list ] "}".
+
+statement-list ::=  statement { statement }.
+
+selection-statement ::=
+  "if" "(" expression ")" statement [ "else" statement ]
+| "switch" "(" expression ")" statement.
+
+iteration-statement ::=
+  "while" "(" expression ")" statement
+// ext | "do" statement "while" "(" expression ")" ";"
+// ext | "for" "(" [ expression ] ";" [ expression ] ";" [ expression ] ")" statement.
+
+jump-statement ::=
+  "goto" identifier ";"
+// ext | "continue" ";"
+| "break" ";"
+| "return" [ "(" expression ")" ] ";".
+
+**********************************************************
+expression ::= assignment-expression { "," assignment-expression }.
+
+assignment-expression ::=
+  conditional-expression
+| unary-expression assignment-operator assignment-expression.
+
+// ext assignment-operator ::= "=" | "*=" | "/=" | "%=" | "+=" | "-="
+// ext                       | "<<=" | ">>=" | "&=" | "^=" | "|=" .
+
+assignment-operator ::= "=" | "=*" | "=/" | "=%" | "=+" | "=-"
+                      | "=<<" | "=>>" | "=&" | "=^" | "=|"
+                      
+conditional-expression ::=              **** check
+  logical-OR-expression [ "?" expression ":" conditional-expression ] .
+
+constant-expression ::=  conditional-expression .
+
+
+
+// ext logical-OR-expression ::=
+  logical-AND-expression { "||" logical-AND-expression } .
+
+// ext logical-AND-expression ::=
+  inclusive-OR-expression { "&&" inclusive-OR-expression } .
+
+
+
+inclusive-OR-expression ::=
+  exclusive-OR-expression { "|" exclusive-OR-expression } .
+
+exclusive-OR-expression ::=
+  AND-expression { "^" AND-expression } .
+
+AND-expression ::=
+  equality-expression { "&" equality-expression } .
+
+equality-expression ::=
+  relational-expression { equality-operator relational-expression } .
+
+equality-operator ::= "==" | "!=" .
+
+relational-expression ::=
+  shift-expression { relational-operator shift-expression } .
+
+relational-operator ::= "<" | ">" | "<=" | ">=" .
+
+shift-expression ::=
+  additive-expression { shift-operator additive-expression } .
+
+shift-operator ::= "<<" | ">>" .
+
+additive-expression ::=
+  multiplicative-expression { additive-operator multiplicative-expression } .
+
+additive-operator ::= "+" | "-" .
+
+multiplicative-expression ::=
+  unary-expression { multiplicative-operator unary-expression } .
+  
+multiplicative-operator ::= "*" | "/" | "%" .
+
+unary-expression ::=
+  postfix-expression
+| "++" unary-expression
+| "--" unary-expression
+| unary-operator unary-expression
+// ext | "sizeof" unary-expression
+// ext | "sizeof" "(" type-name ")" .
+
+unary-operator ::= "&" | "*" | "+" | "-" | "~" | "!" .
+
+postfix-expression ::=
+  primary-expression { postfix-operation }.
+
+postfix-operation ::=
+  "[" expression "]"
+| "(" [ argument-expression-list ] ")"
+// not used | "." identifier
+// not used | "->" identifier
+| "++"
+| "--"
+
+primary-expression ::=
+  identifier
+  constant
+  string
+  "(" expression ")"
+
+argument-expression-list ::=
+  assignment-expression { "," assignment-epression } .
+
+constant ::=
+  integer-constant
+  character-constant
+  floating-constant
+  enumeration-constant
+
+
+
+********************* Syntax From Thompson's B Manual ******************
+**********    https://www.bell-labs.com/usr/dmr/www/kbman.html  *****
+
+The syntax given in this section defines all the legal constructions in B
+without specifying the association rules. These are given later along with
+the semantic description of each construction.
+program ::=
+	{definition}0
+
+definition ::=
+	name {[ {constant}01 ]}01 {ival {, ival}0}01 ;
+	name ( {name {, name}0}01 ) statement
+
+ival ::=
+	constant
+	name
+
+statement ::=
+	auto name {constant}01 {, name {constant}01}0 ;  statement
+	extrn name {, name}0 ; statement
+	name : statement
+	case constant : statement
+	{ {statement}0 }
+	if ( rvalue ) statement {else statement}01
+	while ( rvalue ) statement
+	switch rvalue statement
+	goto rvalue ;
+	return {( rvalue )}01 ;
+	{rvalue}01 ;
+
+rvalue ::=
+	( rvalue )
+	lvalue
+	constant
+	lvalue assign rvalue
+	inc-dec lvalue
+	lvalue inc-dec
+	unary rvalue
+	& lvalue
+	rvalue binary rvalue
+	rvalue ? rvalue : rvalue
+	rvalue ( {rvalue {, rvalue}0 }01 )
+
+assign ::=
+	= {binary}01
+
+inc-dec ::=
+	++
+	--
+	
+unary ::=
+	-
+	!
+
+binary ::=
+	|
+	&
+	==
+	!=
+	<
+	<=
+	>
+	>=
+	<<
+	>>
+	-
+	+
+	%
+	*
+	/
+
+lvalue ::=
+	name
+	* rvalue
+	rvalue [ rvalue ]
+
+constant ::=
+	{digit}1
+	' {char}12 '
+	" {char}0 "
+
+name ::=
+	alpha {alpha-digit}07
+
+alpha-digit ::=
+	alpha
+	digit
+Comments and Character Sets
+
+
+Comments are delimited as in PL/I by /* and */.
+
+In general, B requires tokens to be separated by blanks, comments or newlines,
+however the compiler infers separators surrounding any of the characters
+(){}[],;?: or surrounding any maximal sequence of the characters +-*/<>&|!.
+
+The character set used in B is ANSCII.
+
+The syntactic variable 'alpha' is not defined. It represents the characters A
+to Z, a to z, _, and backspace.
+
+The syntactic variable 'digit' is not defined. It represents the characters 0,
+1, 2, ... 9.
+
+The syntactic variable 'char' is not defined. It is essentially any character
+in the set plus the escape character * followed by another character to
+represent characters not easily represented in the set. The following escape
+sequences are currently defined:
+	*0	null
+	*e	end-of-file
+	*(	{
+	*)	}
+	*t	tab
+	**	*
+	*'	'
+	*"	"
+	*n	new line
+All keywords in the language are only recognized in lower case. Keywords are
+reserved.
+
+
+
+
+***************   From Thompson's B Manual **********************
+*******  Modified to recursive descent // Wirth Syntax **********
+
+The syntax given in this section defines all the legal constructions in B
+without specifying the association rules. These are given later along with the
+semantic description of each construction.
+
+program ::= {definition}
+
+definition ::=
+    name [ "[" [constant] "]" ] [ ival {"," ival} ] ";"  // vars
+  | name "(" [name {"," name} ] ")" statement   .         // funcs
+
+ival ::=
+    constant
+  | name .
+
+statement ::=
+    auto name [ constant ] { "," name [ constant ] } ";" statement .
+  | extrn name { "," name } ; statement .
+  | name ":" statement .
+  | "case" constant ":" statement .
+  | "{" {statement} "}" .
+  | "if" "(" rvalue ")" statement [ "else" statement ] .
+  | "while" "(" rvalue ")" statement .
+  | "switch" rvalue statement .
+  | "goto" rvalue ";" .
+  | "return" [ "(" rvalue ")" ] ";" .
+  | [ rvalue ] ";" .
+
+rvalue ::=
+	( rvalue )
+	lvalue
+	constant
+	lvalue assign rvalue
+	inc-dec lvalue
+	lvalue inc-dec
+	unary rvalue
+	& lvalue
+	rvalue binary rvalue
+	rvalue ? rvalue : rvalue
+	rvalue ( {rvalue {, rvalue}0 }01 )
+
+assign ::=
+	= {binary}01
+
+inc-dec ::=
+	++
+	--
+	
+unary ::=
+	-
+	!
+
+binary ::=
+	|
+	&
+	==
+	!=
+	<
+	<=
+	>
+	>=
+	<<
+	>>
+	-
+	+
+	%
+	*
+	/
+
+lvalue ::=
+	name
+	* rvalue
+	rvalue [ rvalue ]
+
+constant ::=
+	{digit}1
+	' {char}12 '
+	" {char}0 "
+
+name ::=
+	alpha {alpha-digit}07
+
+alpha-digit ::=
+	alpha
+	digit
+
+**************   from k&r 2e *****************************
+**************   modified to B ***************************
+
+exp ::= assign-exp { "," assign-exp }.
+
+assign-exp ::=
+    conditional-exp
+  | unary-exp assign-op assign-exp .
+
+assign-op ::= "=" | "=*" | "=/" | "=%" | "=+" | "=-"
+            | "=<<" | "=>>" | "=&" | "=^" | "=|"
+
+conditional-exp ::= 
+
+********************   From section 4 ****************************
+******************************************************************
+
+assignment-expression ::=  lvalue { assignment-operator rvalue } .
+
+Comments and Character Sets
+
+
+Comments are delimited as in PL/I by /* and */.
+
+In general, B requires tokens to be separated by blanks, comments or newlines, however the compiler infers separators surrounding any of the characters (){}[],;?: or surrounding any maximal sequence of the characters +-*/<>&|!.
+
+The character set used in B is ANSCII.
+
+The syntactic variable 'alpha' is not defined. It represents the characters A to Z, a to z, _, and backspace.
+
+The syntactic variable 'digit' is not defined. It represents the characters 0, 1, 2, ... 9.
+
+The syntactic variable 'char' is not defined. It is essentially any character in the set plus the escape character * followed by another character to represent characters not easily represented in the set. The following escape sequences are currently defined:
+	*0	null
+	*e	end-of-file
+	*(	{
+	*)	}
+	*t	tab
+	**	*
+	*'	'
+	*"	"
+	*n	new line
+All keywords in the language are only recognized in lower case. Keywords are reserved.
+
+
+
+*******************   Keywords from Thompson's B manual  *****************
+
+auto
+[break]
+case
+else
+extrn
+goto
+if
+return
+switch
+while
+
+auto
+extrn 
+case 
+if
+else
+while 
+switch
+goto 
+return 
+ 
